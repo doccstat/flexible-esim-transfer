@@ -1,0 +1,86 @@
+package com.lixingchi.flexibleesimtransfer;
+
+import android.app.Application;
+import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import io.github.libxposed.service.XposedService;
+import io.github.libxposed.service.XposedServiceHelper;
+
+public final class SettingsStore extends Application implements XposedServiceHelper.OnServiceListener {
+    final Handler main = new Handler(Looper.getMainLooper());
+    private final ExecutorService worker = Executors.newSingleThreadExecutor();
+    private XposedService service;
+    private SharedPreferences prefs;
+    Runnable changed;
+    String confirmed = "";
+    int error = R.string.disconnected;
+    boolean saving;
+
+    @Override public void onCreate() {
+        super.onCreate();
+        XposedServiceHelper.registerListener(this);
+    }
+
+    @Override public void onServiceBind(XposedService connected) {
+        main.post(() -> {
+            service = connected;
+            try {
+                prefs = connected.getRemotePreferences(Selection.PREFS);
+                confirmed = prefs.getString(Selection.KEY, "");
+                if (!confirmed.isEmpty() && !Selection.configured(confirmed)) throw new IllegalStateException();
+                error = 0;
+            } catch (RuntimeException unavailable) {
+                prefs = null;
+                error = R.string.read_failed;
+            }
+            notifyChanged();
+        });
+    }
+
+    @Override public void onServiceDied(XposedService disconnected) {
+        main.post(() -> {
+            if (service != disconnected) return;
+            service = null;
+            prefs = null;
+            error = R.string.disconnected;
+            notifyChanged();
+        });
+    }
+
+    boolean ready() { return prefs != null && !saving; }
+
+    void save(String fingerprint, Runnable onSuccess) {
+        if (!ready() || (!fingerprint.isEmpty() && !Selection.configured(fingerprint))) return;
+        SharedPreferences target = prefs;
+        saving = true;
+        notifyChanged();
+        worker.execute(() -> {
+            boolean ok;
+            try { ok = target.edit().putString(Selection.KEY, fingerprint).commit(); }
+            catch (RuntimeException unavailable) { ok = false; }
+            final boolean saved = ok;
+            main.post(() -> {
+                saving = false;
+                if (prefs == target) {
+                    if (saved) {
+                        confirmed = fingerprint;
+                        error = 0;
+                        onSuccess.run();
+                    } else {
+                        // RemotePreferences optimistically caches failed writes; do not trust that cache.
+                        prefs = null;
+                        error = R.string.save_failed;
+                    }
+                }
+                notifyChanged();
+            });
+        });
+    }
+
+    private void notifyChanged() { if (changed != null) changed.run(); }
+}
