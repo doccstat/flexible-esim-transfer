@@ -4,7 +4,8 @@ Route Android’s incoming eSIM transfers and new profile downloads to a real
 eUICC you choose, including a removable SIM-form-factor eUICC.
 
 Includes automatic eUICC discovery and an explicit card/port picker.
-**0.3.1 handles blocked slot-status queries without throwing a routing exception.**
+**0.3.2 preserves native hardware slot lists so removable-card routing does not
+redirect the transfer entry to a download-only page.**
 Destination routing is implemented and ready for a controlled trial, but no
 successful carrier transfer has been validated. There is no carrier, country,
 phone-model or card-brand allowlist. Your carrier and the destination card still have to support the
@@ -51,8 +52,9 @@ An incompatible LPA reports incomplete hooks; do not start a transfer then.
    both scoped processes to restore stock behavior.
 
 **While enabled, this applies to all new downloads handled by SIM Manager,
-not only transfers.** Its default destination displays and slot selectors also
-point to the selected card. Do not use it on the source phone, perform unrelated
+not only transfers.** Default destination identity and download-slot selection
+point to the selected card; hardware slot lists keep their native classification.
+Do not use it on the source phone, perform unrelated
 SIM maintenance, or change destination during a transfer. A real carrier flow
 can deactivate the source line or consume an activation code even if installation
 later fails. Use a recoverable test line first; do not repeatedly retry an
@@ -97,7 +99,10 @@ additional translation locales have not been selected.
 
 The selected card is used both when Play services prepares destination identity
 and when SIM Manager downloads and enables the new profile. Explicit source-card
-lookups stay real. The final slot/port and cryptographic card operations are
+lookups stay real. Physical-tray presence and built-in/removable slot lists are
+not rewritten: the native UI uses those lists to choose its setup/transfer entry.
+No tray is invented on eSIM-only hardware, and native carrier/transfer availability
+checks are unchanged. The final slot/port and cryptographic card operations are
 checked against the same destination; signed payloads are never rewritten.
 
 Missing, ambiguous, inactive or moved targets do not fall back to the built-in
@@ -158,8 +163,9 @@ python -B -m unittest discover -s tools -p 'test_*.py'
 Unit tests exercise the production interceptors with Android/LPA doubles:
 entitlement selection → card-bound download → slot verification → final card
 operation, plus original errors, source lookups, cancellation/configuration
-changes, removed cards, non-throwing slot polling and incomplete hooks. Discovery
-tests cover real-inventory conversion, active/inactive and nonconsecutive ports,
+changes, removed cards, non-throwing slot polling, unchanged hardware slot lists
+and incomplete hooks. Discovery tests cover real-inventory conversion,
+active/inactive and nonconsecutive ports,
 manual fallback, protected request setup, failed/empty scans, timeout/cancellation
 and redacted diagnostics.
 These tests do not exercise the live UI, Android permission enforcement, ART,
