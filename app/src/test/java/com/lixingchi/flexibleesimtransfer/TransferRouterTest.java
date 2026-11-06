@@ -24,7 +24,7 @@ public class TransferRouterTest {
         HookHarness.preferences.put(Selection.KEY, HASH);
         HookHarness.preferences.put(Selection.PORT, "");
         builtIn = new UiccCardInfo(SOURCE_EID, 4, 0, true, List.of(new UiccPortInfo(0, 0, true)));
-        removable = new UiccCardInfo(EID, 17, 1, true, List.of(new UiccPortInfo(0, 1, true)));
+        removable = new UiccCardInfo(EID, 17, 1, true, true, List.of(new UiccPortInfo(0, 1, true)));
         tm = new TelephonyManager();
         tm.cards = List.of(builtIn, removable);
         EuiccManager.eids.clear();
@@ -68,8 +68,8 @@ public class TransferRouterTest {
         int slot = slots().getPreferredEuiccSlotId(new UiccSlotInfo[0]);
         assertEquals(1, slot);
         assertEquals(authorizedEid, slots().getEidForSlot(-1));
-        assertEquals(List.of(1), new SimSlotMapping().getEsimSlotIds());
-        assertEquals(List.of(), new SimSlotMapping().getPsimSlotIds());
+        assertEquals(List.of(0), new SimSlotMapping().getEsimSlotIds());
+        assertEquals(List.of(1), new SimSlotMapping().getPsimSlotIds());
         assertEquals(0, new EuiccServiceImpl().onDownloadSubscription(slot, 0,
                 new DownloadableSubscription(), true, false, null).result);
         EuiccCardManager card = new EuiccCardManager();
@@ -82,6 +82,36 @@ public class TransferRouterTest {
         assertEquals(1, card.calls);
         assertEquals(EID, card.card);
         assertSame(bound, card.payload);
+    }
+    @Test public void routingPreservesThePhysicalTrayAndNativeHardwareLists() throws Exception {
+        for (String eid : List.of(EID, SOURCE_EID)) {
+            HookHarness.preferences.put(Selection.KEY, Selection.fingerprint(eid));
+            load("com.google.android.euicc");
+            assertEquals(eid, new EuiccManager(4).getEid());
+            SimSlotMapping mapping = new SimSlotMapping();
+            // An empty tray list sends native Settings to download-only instead of the transfer menu.
+            assertFalse(mapping.getPsimSlotIds().isEmpty());
+            assertSame(mapping.removable, mapping.getPsimSlotIds());
+            assertSame(mapping.embedded, mapping.getEsimSlotIds());
+            mapping.removable = List.of(1, 4);
+            mapping.embedded = List.of(0, 7);
+            assertSame(mapping.removable, mapping.getPsimSlotIds());
+            assertSame(mapping.embedded, mapping.getEsimSlotIds());
+            HookHarness.preferences.put(Selection.KEY, "");
+            assertSlotsUnavailable(slots());
+            assertSame(mapping.removable, mapping.getPsimSlotIds());
+            assertSame(mapping.embedded, mapping.getEsimSlotIds());
+        }
+    }
+    @Test public void routingDoesNotInventAPhysicalTrayOnEsimOnlyHardware() throws Exception {
+        HookHarness.preferences.put(Selection.KEY, Selection.fingerprint(SOURCE_EID));
+        tm.cards = List.of(builtIn);
+        load("com.google.android.euicc");
+        assertEquals(SOURCE_EID, new EuiccManager(4).getEid());
+        SimSlotMapping mapping = new SimSlotMapping();
+        mapping.removable = List.of();
+        assertSame(mapping.removable, mapping.getPsimSlotIds());
+        assertSame(mapping.embedded, mapping.getEsimSlotIds());
     }
     @Test public void explicitSourceQueriesRemainReal() throws Exception {
         load("com.google.android.euicc");

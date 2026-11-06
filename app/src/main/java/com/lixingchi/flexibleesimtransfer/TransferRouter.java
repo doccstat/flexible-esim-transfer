@@ -240,15 +240,14 @@ public final class TransferRouter extends XposedModule {
     }
 
     private void installLpa(ClassLoader loader) throws ReflectiveOperationException {
+        // Keep hardware slot lists native: tray presence selects the transfer entry screen.
         Class<?> app = Class.forName("com.android.euicc.EuiccApplication", false, loader);
         Class<?> slots = null;
-        Class<?> mappingBase = null;
         for (Method method : app.getDeclaredMethods()) {
             if (method.getParameterCount() != 0) continue;
             if (method.getName().startsWith("getUiccSlotsManager")) slots = method.getReturnType();
-            if (method.getName().startsWith("getSimSlotMapping")) mappingBase = method.getReturnType();
         }
-        if (slots == null || mappingBase == null) throw new NoSuchMethodException();
+        if (slots == null) throw new NoSuchMethodException();
         Method tm = slots.getDeclaredMethod("getTelephonyManager");
         tm.setAccessible(true);
         for (String name : List.of("getActiveEuiccSlotId", "getFirstActiveEuiccSlotId",
@@ -291,21 +290,6 @@ public final class TransferRouter extends XposedModule {
             target.requireEid((String) result);
             return result;
         });
-        Class<?> mapping = Class.forName("com.google.android.euicc.config.SimSlotMapping", false, loader);
-        for (Class<?> type : List.of(mappingBase, mapping)) {
-            install(type.getMethod("getEsimSlotIds"), chain -> {
-                Selection.Target target = target();
-                return target == null ? chain.proceed() : new ArrayList<>(List.of(target.slot()));
-            });
-            install(type.getMethod("getPsimSlotIds"), chain -> {
-                Selection.Target target = target();
-                Object original = chain.proceed();
-                if (target == null || original == null) return original;
-                List<?> physical = new ArrayList<>((List<?>) original);
-                physical.remove(Integer.valueOf(target.slot()));
-                return physical;
-            });
-        }
     }
 
     private boolean enabled() {
