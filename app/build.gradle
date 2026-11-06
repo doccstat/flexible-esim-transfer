@@ -1,0 +1,23 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.lixingchi.flexibleesimtransfer'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'com.lixingchi.flexibleesimtransfer'
+        minSdk 33
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0-preflight'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    compileOnly 'io.github.libxposed:api:101.0.0'
+    implementation 'io.github.libxposed:service:101.0.0'
+    testImplementation 'junit:junit:4.13.2'
+}

@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Flexible eSIM Transfer</string>
+    <string name="intro">Preflight only — does not redirect or transfer an eSIM. Observing is OFF until you select a destination.</string>
+    <string name="instructions">Enter the removable card’s real 32-digit EID from your existing LPA. Only its SHA-256 fingerprint is saved in the framework’s private settings. No carrier request is made. Logs compare Android’s chosen destination against this card, without printing EIDs or activation codes.</string>
+    <string name="eid_hint">Removable eUICC EID (exactly 32 digits)</string>
+    <string name="observe">Observe this destination</string>
+    <string name="off">Off / forget destination</string>
+    <string name="warning">Scope only SIM Manager (com.google.android.euicc), owner user. Framework connection is not proof that hooks are loaded. Do not start a transfer to test this build: stock behavior is unchanged and may deactivate your existing line.</string>
+    <string name="invalid_eid">Enter exactly 32 ASCII digits, not all zero. Spaces are not removed.</string>
+    <string name="disconnected">Framework unavailable. Enable the module and reopen this app.</string>
+    <string name="saving">Saving…</string>
+    <string name="save_failed">Save failed; framework state is unknown. Restart this settings app before retrying. No routing changes are implemented.</string>
+    <string name="read_failed">Cannot read framework settings. Restart this app to reconnect.</string>
+    <string name="status_off">Connected. Observation OFF. Routing is not implemented.</string>
+    <string name="status_observe">Connected. Observation requested for fingerprint %1$s. Check module logs for actual hook activity. Routing is not implemented.</string>
+</resources>
