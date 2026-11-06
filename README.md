@@ -153,8 +153,10 @@ python tools/capture_logs.py --serial YOUR_ADB_SERIAL --root --seconds 1800 --ou
 ```
 
 Wait for `Live redacted capture ready` before using the phone. The collector
-saves only known module events and native error/callback codes, not raw messages,
-APDU bodies, identities or credentials. The duration is explicit (1–3600 seconds);
+saves only known module events, native error codes and Android transfer-pairing
+callbacks, not raw messages, QR/session material, APDU bodies, identities or
+credentials. It cannot read the other phone's logs or recover callbacks Android
+did not emit. The duration is explicit (1–3600 seconds);
 Ctrl+C stops early. Files are create-only. The initial log tail can be older than
 the capture, and unavailable/suppressed logs cannot be recovered. No apps are
 started/restarted, log levels changed, buffers cleared or transfers initiated.

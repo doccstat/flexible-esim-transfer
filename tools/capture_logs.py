@@ -20,6 +20,9 @@ NATIVE_CODES = (
     ("native_error", rf"Mapping for error code: {NUMBER}"),
     ("mapped_error", rf"Mapping error code: {NUMBER} to: {NUMBER}"),
     ("metadata_result", rf"onGetDownloadableSubscriptionMetadata errorCode: {NUMBER}"),
+    ("transfer_connection_result", rf"onConnectionResult: statusCode: {NUMBER}, model: .*, manufacturer: .*"),
+    ("transfer_generic_error", rf"showGenericError:(?:true|false), destroyed:(?:true|false), resultCode:{NUMBER}"),
+    ("transfer_start_error", rf"Failed to start the esim transfer session: (?:com\.google\.android\.gms\.common\.api\.ApiException: )?{NUMBER}(?:: .*)?"),
 )
 PHASES = {
     "Failed to get profile metadata.": "metadata_failed",
@@ -27,6 +30,10 @@ PHASES = {
     "SM-DP+ cannot authenticate the eUICC.": "client_authentication_failed",
     "Cannot initiate a profile download due to an SM-DP+ error.": "initiation_failed",
     "Cannot initiate a profile download due to an eUICC error.": "card_response_failed",
+    "unAuthenticatedSessionConnected": "transfer_session_connected_unauthenticated",
+    "LPA onDeepLinkUrlUpdate": "transfer_qr_updated",
+    "Start QR code fallback for cloud transfer": "transfer_qr_fallback",
+    "Teardown failed with D2D connection timeout. Source is offline.": "transfer_teardown_timeout",
 }
 
 
@@ -52,6 +59,8 @@ def parse_line(line):
             return None
     if message in PHASES:
         return {"source": "native", "event": PHASES[message]}
+    if message.startswith("Failed to start the esim transfer session: "):
+        return {"source": "native", "event": "transfer_start_failed"}
     match = re.fullmatch(r"(?:Caused by: )?com\.android\.euicc\.service\.EuiccServiceException: .* \(Error Code=(-?\d{1,10}|0x[0-9a-fA-F]{1,8})\)", message)
     if match:
         code = int(match[1], 16 if match[1].startswith("0x") else 10)
