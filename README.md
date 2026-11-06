@@ -1,97 +1,125 @@
 # Flexible eSIM Transfer
 
-Choose the real eUICC you want a carrier-supported transfer to reach — including
-an eUICC in a removable SIM card.
+Route Android’s incoming eSIM transfers and new profile downloads to a real
+eUICC you choose, including a removable SIM-form-factor eUICC.
 
-**Status: 0.1.0-preflight, an observation-only Vector module. It cannot redirect,
-transfer, download, or activate an eSIM. No successful transfer is claimed.**
-The current build checks where the stock software is pointing before a routing
-implementation is attempted. Do not start a transfer merely to test it: the
-stock flow still runs normally and can deactivate the source line.
+**0.2.0-routing implements destination routing, not just observation.** It is an
+experimental build ready for a controlled trial, not a claim of a successful
+carrier transfer. There is no carrier, country, phone-model or card-brand
+allowlist. Your carrier and the destination card still have to support the
+stock transfer and cryptographic download protocols.
 
-## Why not just replace the EID?
+## Requirements
 
-A destination has an EID **and** an Android card ID, physical slot and port.
-The carrier must authorize the replacement, and the actual destination eUICC
-must perform the cryptographic profile-download exchange. Changing only a
-reported EID does not move that exchange or unlock an existing profile.
+- Android 13+, root, and modern libxposed API 101+, such as Vector.
+- Google SIM Manager (`com.google.android.euicc`) and Google Play services
+  (`com.google.android.gms`). Other manufacturers’ proprietary LPAs are not
+  implemented by this adapter.
+- A real eUICC recognized by Android, already mapped to an active modem port.
+  USB/CCID-only readers and cards visible only to an OMAPI app are not Android
+  telephony destinations. This module does not change modem slot mappings.
 
-This project is not SIM cloning, a carrier-lock bypass, an arbitrary EID
-spoofer, or a replacement LPA. Future routing must keep entitlement metadata
-and the download endpoint on the same real, explicitly selected card.
+Both removable and built-in eUICCs can be selected. Card IDs and slots are
+resolved from the actual inventory, never assumed to be slot 0 or 1. Private
+LPA hooks are discovered by method signatures and application accessor return
+types, rather than a device name, APK hash, or hardcoded obfuscated class name.
+An incompatible LPA reports incomplete hooks; do not start a transfer then.
 
-## Preflight module
+## Install and use
 
-- Android 13+ and modern libxposed API 101+, such as Vector.
-- Package: `com.lixingchi.flexibleesimtransfer`.
-- Scope **only SIM Manager (`com.google.android.euicc`), owner user**. Other
-  packages and Android profiles are ignored, even if added to scope.
-- Observation defaults **off**. Enter the removable card's exact 32-digit EID
-  from your existing LPA, then choose **Observe this destination**. Input is
-  validated without trimming or rewriting. Only its SHA-256 fingerprint is
-  saved through the framework's private remote preferences, not the raw EID.
-- **Off / forget destination** clears the saved fingerprint. A failed save
-  reports unknown state and requires reconnecting the settings app; it is not
-  presented as a successful disable.
-- No root commands, APDUs, carrier requests, clipboard access, profile actions,
-  device-setting writes or automatic process restarts. Settings changes affect
-  only this module's observation. Installing a module is itself a device change.
-- Existing system queries provide the card inventory. A candidate must match
-  uniquely, be removable and eUICC-capable, have a valid card/slot address and
-  an active port. There is no first-card or built-in-card fallback.
+1. Install the APK on the **receiving phone only**. Enable
+   `com.lixingchi.flexibleesimtransfer` in your framework. Scope **SIM Manager
+   and Google Play services, owner user only**. Other packages/users are ignored.
+2. Open **Flexible eSIM Transfer**. Enter the destination’s exact 32-digit EID
+   from your existing LPA. Leave the port blank to use the **only active port**;
+   with multiple active ports, enter the desired port index. Input is not trimmed
+   or rewritten. Choose **Route to this eUICC** and confirm.
+3. Close any existing transfer, then restart **both scoped processes** using
+   your framework’s supported activation procedure. Do not blindly reboot a
+   temporary-root phone: it may lose root. A stale process or previously issued
+   transfer credential must not be reused after changing destination.
+4. Check framework logs tagged `FlexibleEsimTransfer` for `hooks: READY:LPA`
+   and `hooks: READY:GMS`, without `INCOMPLETE`. Then start a **fresh incoming
+   transfer** through Android’s normal SIM settings, or a new QR-code download.
+   Keep the stock authorization and confirmation steps.
+5. Verify the profile is on the selected card with your existing LPA and test
+   service. Close the flow, choose **Off / forget destination**, and restart
+   both scoped processes to restore stock behavior.
 
-The standard API hooks observe default card selection, explicit card binding,
-EID results and **already initiated** download requests. Every original call
-runs once with its original arguments; its result or exception is preserved.
-A download-request log is not confirmation of installation.
+**While enabled, this applies to all new downloads handled by SIM Manager,
+not only transfers.** Its default destination displays and slot selectors also
+point to the selected card. Do not use it on the source phone, perform unrelated
+SIM maintenance, or change destination during a transfer. A real carrier flow
+can deactivate the source line or consume an activation code even if installation
+later fails. Use a recoverable test line first; do not repeatedly retry an
+uncertain result without checking the card and carrier.
 
-Private LPA hooks are restricted to Android API 37 and this exact SIM Manager
-APK, version `D.2.1.989982212-google` / `306110`:
+The settings app’s framework connection proves preference access, **not** hook
+activation. Installing or selecting a destination does not initiate a transfer,
+switch a modem slot, download/enable/delete a profile, or restart any process.
+The native flow still performs its normal operations when you initiate it.
 
-```text
-SHA-256 579f75da460e6a6137a1f2b39e603e20999b4f55c2ec1bde51acc4feac1c6760
-```
+## Routing and safety
 
-They observe preferred/active slot selection and the target EID carried by
-transfer metadata. On other builds, only standard API observation is attempted.
-Missing hooks are reported as incomplete, not success. Inlined calls and code
-in Google Play services may escape these hooks; absence of an event proves
-nothing. This is not yet an end-to-end or transaction-correlated preflight.
+The selected card is used both when Play services prepares destination identity
+and when SIM Manager downloads and enables the new profile. Explicit source-card
+lookups stay real. The final slot/port and cryptographic card operations are
+checked against the same destination; signed payloads are never rewritten.
 
-Enable and activate through your framework's supported procedure. **No device
-activation has been validated.** Temporary-root devices may lose root on an
-ordinary reboot; do not reboot them just to follow generic module instructions.
-The settings app's connection status confirms only preference access, not
-loaded hooks. Inspect logs tagged `FlexibleEsimTransfer`: installation status,
-selection state, and match booleans only. This module does not log EIDs, their
-fingerprints, ICCIDs, IMEIs, activation codes, raw metadata or exceptions.
-Stock apps and other modules may still log sensitive data.
+Missing, ambiguous, inactive or moved targets do not fall back to the built-in
+chip. After a pinned target disappears or settings change, that process requires
+restart, even if the old selection is restored. The module never turns a native
+error into success or retries a carrier/card transaction. The stock framework’s
+port-resolution policy still applies; a conflicting port is rejected rather
+than silently enabling another one.
 
-## Build and tests
+This is not SIM cloning, an arbitrary EID/IMEI spoofer, a carrier-lock bypass,
+or a replacement LPA. IMEIs, source subscription identities, authentication
+material, capabilities, carrier policy and profile deletion are not patched.
+Only the destination fingerprint and explicit port text are saved in private
+framework preferences. The old observation-only settings do not enable routing
+on upgrade. Module logs contain status labels, not EIDs, fingerprints, ICCIDs,
+IMEIs or activation codes; stock software may have its own sensitive logging.
 
-Use an existing JDK 17+, Gradle 8.13, Android SDK 36 and build-tools 35.0.0.
-Run in a disposable build copy; no build step accesses a phone:
+## Export diagnostics
+
+With Python 3 and your existing ADB, run:
 
 ```sh
-gradle --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleRelease
+python tools/diagnostics.py --serial YOUR_ADB_SERIAL --root --output diagnostics.json
 ```
 
-`app/build/outputs/apk/release/app-release-unsigned.apk` is deliberately unsigned.
-Choose your own signing key before installation. There is no updater, public
-release, automatic installation or bundled proprietary APK.
+`--root` reads Vector’s module status, scope and logs through `su`; omit it for
+versions and available logcat events only. Optionally add `--routing on` (or
+`off`) and `--port auto` (or an index) to record the settings you see in the app.
+These settings are explicitly labelled operator-reported, not independently
+verified; defaults are `unknown`. The script changes no device state.
 
-## Before enabling real routing
+The report contains Android/app versions, module status, sanitized routing
+and error/result events, and unavailable checks. Serial numbers, destination
+identifiers, activation codes and raw logs are excluded. Review before sharing.
+Nothing is uploaded, and existing output files are never overwritten. No events
+does **not** establish hook activation or transfer success.
 
-1. Validate hook loading and redacted read-only observations on the actual build.
-2. Determine the source device/carrier's transfer protocol and where Google Play
-   services produces destination-bound credentials. Never rewrite a credential
-   after it has been issued for another EID.
-3. Add an explicit destination selector spanning authorization, card/slot/port
-   routing and the actual LPA transaction. Refuse missing, replaced, ambiguous
-   or stale targets; never fall back to the built-in eUICC mid-operation.
-4. Separate installation, profile enabling and source deletion confirmations;
-   preserve cancellation/recovery without automatically repeating carrier calls.
-5. Test with an expendable, carrier-supported line before publishing a working
-   transfer claim. A successful local hook test cannot establish carrier support.
+## Build and validation
+
+Use JDK 17+, Gradle 8.13, Android SDK 36 and build-tools 35.0.0. Build in a
+disposable copy:
+
+```sh
+gradle --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease
+python -B -m unittest discover -s tools -p 'test_*.py'
+```
+
+- `app/build/outputs/apk/debug/app-debug.apk`: debug-signed **test build**.
+- `app/build/outputs/apk/release/app-release-unsigned.apk`: unsigned release;
+  supply your own durable signing key for distribution.
+
+Unit tests exercise the production interceptors with Android/LPA doubles:
+entitlement selection → card-bound download → slot verification → final card
+operation, plus original errors, source lookups, cancellation/configuration
+changes, removed cards and incomplete hooks. These tests do not exercise ART,
+radio firmware, real eUICC cryptography or carrier servers. They cannot establish
+universal compatibility. No proprietary APK or signing key is included.
 
 Licensed under [MIT](LICENSE).

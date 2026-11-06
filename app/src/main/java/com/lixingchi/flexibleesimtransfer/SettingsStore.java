@@ -18,6 +18,7 @@ public final class SettingsStore extends Application implements XposedServiceHel
     private SharedPreferences prefs;
     Runnable changed;
     String confirmed = "";
+    String confirmedPort = "";
     int error = R.string.disconnected;
     boolean saving;
 
@@ -32,7 +33,9 @@ public final class SettingsStore extends Application implements XposedServiceHel
             try {
                 prefs = connected.getRemotePreferences(Selection.PREFS);
                 confirmed = prefs.getString(Selection.KEY, "");
+                confirmedPort = prefs.getString(Selection.PORT, "");
                 if (!confirmed.isEmpty() && !Selection.configured(confirmed)) throw new IllegalStateException();
+                Selection.parsePort(confirmedPort);
                 error = 0;
             } catch (RuntimeException unavailable) {
                 prefs = null;
@@ -54,14 +57,16 @@ public final class SettingsStore extends Application implements XposedServiceHel
 
     boolean ready() { return prefs != null && !saving; }
 
-    void save(String fingerprint, Runnable onSuccess) {
+    void save(String fingerprint, String port, Runnable onSuccess) {
         if (!ready() || (!fingerprint.isEmpty() && !Selection.configured(fingerprint))) return;
+        Selection.parsePort(port);
         SharedPreferences target = prefs;
         saving = true;
         notifyChanged();
         worker.execute(() -> {
             boolean ok;
-            try { ok = target.edit().putString(Selection.KEY, fingerprint).commit(); }
+            try { ok = target.edit().putString(Selection.KEY, fingerprint)
+                    .putString(Selection.PORT, port).commit(); }
             catch (RuntimeException unavailable) { ok = false; }
             final boolean saved = ok;
             main.post(() -> {
@@ -69,6 +74,7 @@ public final class SettingsStore extends Application implements XposedServiceHel
                 if (prefs == target) {
                     if (saved) {
                         confirmed = fingerprint;
+                        confirmedPort = port;
                         error = 0;
                         onSuccess.run();
                     } else {
