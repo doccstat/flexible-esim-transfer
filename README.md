@@ -146,6 +146,20 @@ Review before sharing.
 Nothing is uploaded, and existing output files are never overwritten. No events
 does **not** establish hook activation or transfer success.
 
+For a separately authorized live attempt, start a bounded capture first:
+
+```sh
+python tools/capture_logs.py --serial YOUR_ADB_SERIAL --root --seconds 1800 --output capture.jsonl
+```
+
+Wait for `Live redacted capture ready` before using the phone. The collector
+saves only known module events and native error/callback codes, not raw messages,
+APDU bodies, identities or credentials. The duration is explicit (1–3600 seconds);
+Ctrl+C stops early. Files are create-only. The initial log tail can be older than
+the capture, and unavailable/suppressed logs cannot be recovered. No apps are
+started/restarted, log levels changed, buffers cleared or transfers initiated.
+The installed module does not persist native logs itself.
+
 ## Build and validation
 
 Use JDK 17+, Gradle 8.13, Android SDK 36 and build-tools 35.0.0. Build in a
