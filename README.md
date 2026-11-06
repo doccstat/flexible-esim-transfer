@@ -3,10 +3,10 @@
 Route Android’s incoming eSIM transfers and new profile downloads to a real
 eUICC you choose, including a removable SIM-form-factor eUICC.
 
-**0.2.0-routing implements destination routing, not just observation.** It is an
-experimental build ready for a controlled trial, not a claim of a successful
-carrier transfer. There is no carrier, country, phone-model or card-brand
-allowlist. Your carrier and the destination card still have to support the
+**0.3.0 adds automatic eUICC discovery and an explicit card/port picker.**
+Destination routing is implemented and ready for a controlled trial, but no
+successful carrier transfer has been validated. There is no carrier, country,
+phone-model or card-brand allowlist. Your carrier and the destination card still have to support the
 stock transfer and cryptographic download protocols.
 
 ## Requirements
@@ -30,10 +30,13 @@ An incompatible LPA reports incomplete hooks; do not start a transfer then.
 1. Install the APK on the **receiving phone only**. Enable
    `com.lixingchi.flexibleesimtransfer` in your framework. Scope **SIM Manager
    and Google Play services, owner user only**. Other packages/users are ignored.
-2. Open **Flexible eSIM Transfer**. Enter the destination’s exact 32-digit EID
-   from your existing LPA. Leave the port blank to use the **only active port**;
-   with multiple active ports, enter the desired port index. Input is not trimmed
-   or rewritten. Choose **Route to this eUICC** and confirm.
+   Close existing transfers and activate the module in both processes using your
+   framework’s supported, root-preserving restart procedure. Leave routing off.
+2. Open **Flexible eSIM Transfer**. It reads the real eUICCs and their ports from
+   SIM Manager. Choose a card’s active port; nothing is selected automatically.
+   Built-in/removable status, physical slot, logical slot and inactive ports are
+   shown. Use **Show full EIDs** if needed, then **Route to this eUICC** and confirm.
+   **Enter EID manually** remains available if discovery cannot read your card.
 3. Close any existing transfer, then restart **both scoped processes** using
    your framework’s supported activation procedure. Do not blindly reboot a
    temporary-root phone: it may lose root. A stale process or previously issued
@@ -54,10 +57,40 @@ can deactivate the source line or consume an activation code even if installatio
 later fails. Use a recoverable test line first; do not repeatedly retry an
 uncertain result without checking the card and carrier.
 
-The settings app’s framework connection proves preference access, **not** hook
-activation. Installing or selecting a destination does not initiate a transfer,
-switch a modem slot, download/enable/delete a profile, or restart any process.
+The settings app’s framework connection or detected card list does **not** prove
+that all routing hooks are active. Installing or selecting a destination does
+not initiate a transfer, switch a modem slot, download/enable/delete a profile,
+or restart any process.
 The native flow still performs its normal operations when you initiate it.
+
+## Cards, EIDs and ports
+
+Discovery works with routing off. It requires the module to be loaded in a
+running SIM Manager process; this app never launches or restarts that process.
+Use **Refresh cards** after activating the module or changing a card. Failed,
+empty and timed-out scans are distinguished and never change the saved destination.
+A refresh clears an unsaved detected-card choice rather than selecting a replacement.
+
+Port indexes belong to each eUICC; they are **not physical SIM slot numbers**.
+There is no universal valid range. Only active ports with valid Android mappings
+are selectable. Inactive ports remain visible, but the app does not activate them.
+
+For manual entry, use the exact 32-digit EID from your existing LPA. Matching a
+card from the scan shows its ports and validates your choice. Leave the port
+blank for the **only active port**, or enter a reported active index. Multiple
+active ports require an explicit index. Without a matching scan, the confirmation
+marks the choice unverified; routing must still find that real card and port.
+Input, including port text, is not trimmed or rewritten.
+
+EIDs are masked by default. Discovered EIDs exist only in memory and in a
+package-restricted reply to the settings app; the reader requires the module’s
+signature-level permission. No ICCIDs or subscription details are transported.
+Only the selected EID’s fingerprint and port are saved. Scanned cards are cleared
+when leaving the screen; screenshots and autofill are disabled.
+
+The UI currently ships in English, using Android string resources as the source
+and fallback for every device language. There is no separate language selector;
+additional translation locales have not been selected.
 
 ## Routing and safety
 
@@ -95,9 +128,10 @@ versions and available logcat events only. Optionally add `--routing on` (or
 These settings are explicitly labelled operator-reported, not independently
 verified; defaults are `unknown`. The script changes no device state.
 
-The report contains Android/app versions, module status, sanitized routing
-and error/result events, and unavailable checks. Serial numbers, destination
-identifiers, activation codes and raw logs are excluded. Review before sharing.
+The report contains Android/app versions, module status, sanitized routing,
+inventory-reader status and error/result events, and unavailable checks. Serial
+numbers, destination identifiers, activation codes and raw logs are excluded.
+Review before sharing.
 Nothing is uploaded, and existing output files are never overwritten. No events
 does **not** establish hook activation or transfer success.
 
@@ -118,7 +152,10 @@ python -B -m unittest discover -s tools -p 'test_*.py'
 Unit tests exercise the production interceptors with Android/LPA doubles:
 entitlement selection → card-bound download → slot verification → final card
 operation, plus original errors, source lookups, cancellation/configuration
-changes, removed cards and incomplete hooks. These tests do not exercise ART,
+changes, removed cards and incomplete hooks. Discovery tests cover real-inventory
+conversion, active/inactive and nonconsecutive ports, manual fallback, protected
+request setup, failed/empty scans, timeout/cancellation and redacted diagnostics.
+These tests do not exercise the live UI, Android permission enforcement, ART,
 radio firmware, real eUICC cryptography or carrier servers. They cannot establish
 universal compatibility. No proprietary APK or signing key is included.
 

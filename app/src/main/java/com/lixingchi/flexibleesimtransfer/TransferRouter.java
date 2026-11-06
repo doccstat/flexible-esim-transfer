@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.XposedModule;
@@ -45,6 +46,7 @@ public final class TransferRouter extends XposedModule {
     private volatile TelephonyManager telephony;
     private volatile Context context;
     private volatile boolean ready;
+    private boolean inventoryRegistered;
 
     @Override public void onPackageReady(PackageReadyParam param) {
         String name = param.getPackageName();
@@ -54,7 +56,9 @@ public final class TransferRouter extends XposedModule {
             prefs = getRemotePreferences(Selection.PREFS);
             install(Application.class.getDeclaredMethod("attach", Context.class), chain -> {
                 context = (Context) chain.getArg(0);
-                return chain.proceed();
+                Object result = chain.proceed();
+                if (LPA.equals(name)) registerInventory();
+                return result;
             });
             // Install the final guards first: an incomplete setup must not continue a new download.
             if (LPA.equals(name)) installGuards(param.getClassLoader());
@@ -66,6 +70,22 @@ public final class TransferRouter extends XposedModule {
             ready = false;
             emit("hooks", "INCOMPLETE;new_downloads_blocked_where_guards_loaded");
         }
+    }
+
+    private synchronized void registerInventory() {
+        if (inventoryRegistered) return;
+        try {
+            InventoryBridge.register(context, () -> {
+                boolean previous = inventoryRead.get();
+                inventoryRead.set(true);
+                try {
+                    // Discovery works even when routing is off or its saved target is missing.
+                    return CardInventory.fromTelephony(context.getSystemService(TelephonyManager.class).getUiccCardsInfo());
+                } finally { inventoryRead.set(previous); }
+            }, Executors.newSingleThreadExecutor(), value -> emit("inventory_read", value));
+            inventoryRegistered = true;
+            emit("inventory_bridge", "READY");
+        } catch (Throwable unavailable) { emit("inventory_bridge", "UNAVAILABLE"); }
     }
 
     private void installFramework() throws ReflectiveOperationException {
@@ -307,20 +327,7 @@ public final class TransferRouter extends XposedModule {
             Object port = values.get(Selection.PORT);
             String portText = port == null ? "" : (String) port;
             if (!session.enabled(selected, portText)) throw new Selection.Blocked("SETTINGS_CHANGED");
-            List<Selection.Card> cards = null;
-            if (inventory != null) {
-                cards = new ArrayList<>();
-                for (UiccCardInfo card : inventory) {
-                    if (card == null || !card.isEuicc()) continue;
-                    String fingerprint;
-                    try { fingerprint = Selection.fingerprint(card.getEid()); }
-                    catch (IllegalArgumentException redacted) { continue; }
-                    List<Selection.Port> ports = new ArrayList<>();
-                    for (android.telephony.UiccPortInfo p : card.getPorts())
-                        ports.add(new Selection.Port(p.getPortIndex(), p.getLogicalSlotIndex(), p.isActive()));
-                    cards.add(new Selection.Card(fingerprint, card.getCardId(), card.getPhysicalSlotIndex(), true, ports));
-                }
-            }
+            List<Selection.Card> cards = CardInventory.selections(CardInventory.fromTelephony(inventory));
             return session.pin(Selection.resolve(selected, portText, cards));
         } catch (Throwable unavailable) {
             session.unavailable();
