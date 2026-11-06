@@ -1,0 +1,75 @@
+# Shared Android/Python allowlist: source<TAB>event<TAB>field type<TAB>whole-message regex.
+# Only capture groups are exported. Never add a free-text capture group.
+module	hooks	value	hooks: (READY:LPA|READY:GMS|INCOMPLETE;new_downloads_blocked_where_guards_loaded)
+module	inventory	value	inventory: (destination_first)
+module	inventory_bridge	value	inventory_bridge: (READY|UNAVAILABLE)
+module	inventory_read	value	inventory_read: (READY|EMPTY|FAILED)
+module	manager	value	manager: (routing:(?:getEid|getEuiccInfo|getAvailableMemoryInBytes|downloadSubscription|getDownloadableSubscriptionMetadata|getDefaultDownloadableSubscriptionList|continueOperation|switchToSubscription|updateSubscriptionNickname))
+module	service	value	service: (destination_verified)
+module	card	value	card: (destination_verified:(?:requestEuiccChallenge|authenticateServer|prepareDownload|loadBoundProfilePackage))
+module	blocked	value	blocked: (EID_MISMATCH|ADDRESS_MISMATCH|INVALID_SELECTION|INVALID_PORT|INVENTORY_UNAVAILABLE|AMBIGUOUS_CARD|CARD_NOT_FOUND|NOT_EUICC|INVALID_ADDRESS|SELECT_PORT|PORT_INACTIVE|INVALID_PORT_ADDRESS|RESTART_REQUIRED|SETTINGS_CHANGED_RESTART_REQUIRED|CARD_MOVED_RESTART_REQUIRED|DESTINATION_UNAVAILABLE|ERROR_CALLBACK_FAILED|SETTINGS_UNAVAILABLE|HOOKS_INCOMPLETE|CONTEXT_UNAVAILABLE|SETTINGS_CHANGED|UNAVAILABLE|PORT_MISMATCH|SUBSCRIPTIONS_UNAVAILABLE|SUBSCRIPTION_NOT_FOUND)
+module	service_result	result	service_result: (UNAVAILABLE|(?:download|metadata)=-?[0-9]{1,10})
+native	card_callback	codes	Error in createCallback with result code (-?[0-9]{1,10})\.
+native	authenticate_server	codes	AuthenticateServer failed with error code (-?[0-9]{1,10})
+native	invalid_card_code	codes	Invalid euiccErrorCode: (-?[0-9]{1,10}) in TransactionErrorUtil#euiccTransactionErrorToDetailedCode\. Use 0xff instead\.
+native	native_error	codes	Mapping for error code: (-?[0-9]{1,10})
+native	mapped_error	codes	Mapping error code: (-?[0-9]{1,10}) to: (-?[0-9]{1,10})
+native	metadata_result	codes	onGetDownloadableSubscriptionMetadata errorCode: (-?[0-9]{1,10})
+native	transfer_connection_result	codes	onConnectionResult: statusCode: (-?[0-9]{1,10}), model: .*, manufacturer: .*
+native	transfer_generic_error	codes	showGenericError:(?:true|false), destroyed:(?:true|false), resultCode:(-?[0-9]{1,10})
+native	transfer_start_error	codes	Failed to start the esim transfer session: (?:com\.google\.android\.gms\.common\.api\.ApiException: )?(-?[0-9]{1,10})(?:: .*)?
+native	transfer_start_failed	phase	Failed to start the esim transfer session: .*
+native	service_exception	unsigned_code	(?:Caused by: )?com\.android\.euicc\.service\.EuiccServiceException: .* \(Error Code=(-?[0-9]{1,10}|0x[0-9a-fA-F]{1,8})\)
+native	smdp_exception	smdp	(?:Caused by: )?com\.android\.euicc\.smdp\.SmdpException: .*\(responseStatus=([0-9]{1,3}), httpResponseCode=([0-9]{1,3}), subjectCode=(null|[0-9]{1,2}(?:\.[0-9]{1,2}){0,2}), reasonCode=(null|[0-9]{1,2}(?:\.[0-9]{1,2}){0,2}), resultInformation=.*
+native	metadata_failed	phase	Failed to get profile metadata\.
+native	transaction_failed	phase	Failed to create download transaction\.
+native	client_authentication_failed	phase	SM-DP\+ cannot authenticate the eUICC\.
+native	initiation_failed	phase	Cannot initiate a profile download due to an SM-DP\+ error\.
+native	card_response_failed	phase	Cannot initiate a profile download due to an eUICC error\.
+native	transfer_session_connected_unauthenticated	phase	unAuthenticatedSessionConnected
+native	transfer_qr_updated	phase	LPA onDeepLinkUrlUpdate
+native	transfer_qr_fallback	phase	Start QR code fallback for cloud transfer
+native	transfer_teardown_timeout	phase	Teardown failed with D2D connection timeout\. Source is offline\.
+native	download_started	phase	Starting new download transaction\.
+native	download_resumed	phase	Resuming existing download transaction\.
+native	download_cancelled	phase	Cancelling different download transaction\.
+native	download_abandoned	phase	User abandoned download\.
+native	download_authenticated	phase	Profile download transaction is authenticated\. Check if force slot switch needed\.
+native	prepare_download_failed	phase	eUICC cannot prepare the profile download\.
+native	bound_package_failed	phase	Cannot get bound profile package from the SM-DP\+ server\.
+native	authentication_response_invalid	phase	Cannot authenticate due to bad response from SM-DP\+\.
+native	slot_carrier_policy_failed	phase	Failed to switch slot due to carrier policy\.
+native	slot_switch_failed	phase	Failed to switch slot\.
+nearby	dct_checkin_failed	codes	\[DctDeviceAttestationManager\] Checkin was not successful \((-?[0-9]{1,10})\)
+nearby	dct_checkin_failed	phase	\[(?:DctDeviceAttestationManager|DctPcpManager)\] Checkin was not successful
+nearby	dct_checkin_missing_id	phase	\[DctDeviceAttestationManager\] Checkin success, but Android ID is still 0
+nearby	dct_checkin_not_required	phase	\[DctDeviceAttestationManager\] Checkin is not required
+nearby	dct_android_id_wait_failed	phase	\[DctDeviceAttestationManager\] Failed to wait for Android ID
+nearby	dct_android_id_parse_failed	phase	\[DctDeviceAttestationManager\] Failed to parse Android ID
+nearby	dct_attestation_started	phase	\[DctDeviceAttestationManager\] Starting device attestation in parallel
+nearby	dct_token_waiting	phase	\[DctDeviceAttestationManager\] Waiting for the device integrity token
+nearby	dct_token_failed	codes	\[DctDeviceAttestationManager\] Failed to get Play Integrity token: (-?[0-9]{1,10})
+nearby	dct_token_requested	phase	\[DefaultPlayIntegrityProvider\] Requesting an integrity token\.\.\.
+nearby	dct_token_generated	phase	\[DefaultPlayIntegrityProvider\] Integrity token generated
+nearby	dct_token_prefetch_failed	codes	PlayIntegrityTaskUtils Integrity token provider task failed during prefetch: (-?[0-9]{1,10})
+nearby	dct_token_prefetch_ready	phase	PlayIntegrityTaskUtils Integrity token provider ready during prefetch!
+nearby	dct_token_prefetch_pending	phase	PlayIntegrityTaskUtils Integrity token provider task still running after prefetch
+nearby	dct_attestation_send_failed	phase	\[DctDeviceAttestationManager\] Failed to send DEVICE_INTEGRITY_ATTESTATION to remote device
+nearby	dct_attestation_ack_wait_failed	phase	\[DctDeviceAttestationManager\] Failed to wait for device integrity attestation ack from remote device\.
+nearby	dct_remote_attestation_wait_failed	phase	\[DctDeviceAttestationManager\] Failed to wait for device integrity attestation from remote device\.
+nearby	dct_remote_packet_missing	phase	\[DctDeviceAttestationManager\] Device integrity attestation received but packet is null\.
+nearby	dct_remote_attestation_status	codes	\[DctDeviceAttestationManager\] remote device sent attestation status (-?[0-9]{1,10})
+nearby	dct_remote_integrity_missing	phase	\[DctDeviceAttestationManager\] remote device attestation is missing integrity
+nearby	dct_attestation_ack_http_failed	phase	\[DctDeviceAttestationManager\] Failed to send DEVICE_INTEGRITY_ATTESTATION_ACK to source device or get HTTP response
+nearby	dct_attestation_ack_send_failed	phase	\[DctDeviceAttestationManager\] Failed to send DEVICE_INTEGRITY_ATTESTATION_ACK to source device
+nearby	dct_integrity_request_failed	phase	\[DctPcpManager\] Failed to send device integrity request\.
+nearby	dct_integrity_response_wait_failed	phase	\[DctPcpManager\] Failed to wait for device integrity response\.
+nearby	dct_integrity_response_missing	phase	\[DctPcpManager\] DEVICE_INTEGRITY_START_RESPONSE received but packet is null
+nearby	dct_integrity_exchange_failed	phase	\[DctPcpManager\] Device integrity exchange with source device failed\.
+nearby	dct_tls_init_failed	phase	\[DctPcpManager\] Failed to init SSL
+nearby	dct_capability_wait_failed	phase	\[DctPcpManager\] Failed to wait for device capability response\.
+nearby	dct_capability_send_failed	phase	\[DctPcpManager\] Failed to send device capability request\.
+nearby	dct_control_exchange_failed	phase	\[DctPcpManager\] target failed to exchange control messages for serviceId .* and client .*
+nearby	dct_write_failed	phase	\[DctEndpointChannel\] failed to write data from client
+nearby	dct_write_wait_failed	phase	\[DctEndpointChannel\] blockedWrite timeout to wait for write complete of messageId .*
+nearby	nearby_api_exception	codes	(?:Caused by: )?com\.google\.android\.gms\.common\.api\.ApiException: (-?[0-9]{1,10})(?:: .*)?

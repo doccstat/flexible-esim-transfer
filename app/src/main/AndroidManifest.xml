@@ -2,9 +2,22 @@
     <permission android:name="com.lixingchi.flexibleesimtransfer.permission.READ_INVENTORY"
         android:protectionLevel="signature" />
     <uses-permission android:name="com.lixingchi.flexibleesimtransfer.permission.READ_INVENTORY" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <queries>
+        <package android:name="com.google.android.euicc" />
+        <package android:name="com.google.android.gms" />
+    </queries>
     <application android:name=".SettingsStore" android:allowBackup="false"
         android:label="@string/app_name" android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <activity android:name=".DiagnosticsActivity" android:exported="false" />
+        <service android:name=".DiagnosticService" android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-started, time-limited redacted eSIM diagnostic capture with a stop notification" />
+        </service>
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

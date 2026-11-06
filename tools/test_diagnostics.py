@@ -48,7 +48,9 @@ FlexibleEsimTransfer: inventory_read: port=7
         permission = diagnostics.MODULE + ".permission.READ_INVENTORY"
         self.assertEqual([(node.get(android + "name"), node.get(android + "protectionLevel"))
                           for node in manifest.findall("permission")], [(permission, "signature")])
-        self.assertEqual([node.get(android + "name") for node in manifest.findall("uses-permission")], [permission])
+        self.assertEqual([node.get(android + "name") for node in manifest.findall("uses-permission")], [
+            permission, "android.permission.POST_NOTIFICATIONS", "android.permission.FOREGROUND_SERVICE",
+            "android.permission.FOREGROUND_SERVICE_SPECIAL_USE"])
 
     def test_routing_crashes_export_only_known_reason_codes(self):
         raw = """E/AndroidRuntime(123): Caused by: com.lixingchi.flexibleesimtransfer.Selection$Blocked: SETTINGS_CHANGED_RESTART_REQUIRED
