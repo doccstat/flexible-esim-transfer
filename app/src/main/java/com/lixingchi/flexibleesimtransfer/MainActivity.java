@@ -106,6 +106,10 @@ public final class MainActivity extends Activity {
         status = text(body, R.string.disconnected);
         status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         text(body, R.string.warning);
+        Button diagnostics = new Button(this);
+        diagnostics.setText(R.string.diagnostics);
+        diagnostics.setOnClickListener(view -> startActivity(new android.content.Intent(this, DiagnosticsActivity.class)));
+        body.addView(diagnostics);
         setContentView(scroll);
         rebuildDestinations();
     }

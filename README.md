@@ -4,8 +4,7 @@ Route Android’s incoming eSIM transfers and new profile downloads to a real
 eUICC you choose, including a removable SIM-form-factor eUICC.
 
 Includes automatic eUICC discovery and an explicit card/port picker.
-**0.3.2 preserves native hardware slot lists so removable-card routing does not
-redirect the transfer entry to a download-only page.**
+**0.4.0 adds on-device, redacted diagnostic recording and manual export.**
 Destination routing is implemented and ready for a controlled trial, but no
 successful carrier transfer has been validated. There is no carrier, country,
 phone-model or card-brand allowlist. Your carrier and the destination card still have to support the
@@ -118,14 +117,51 @@ rather than silently enabling another one.
 This is not SIM cloning, an arbitrary EID/IMEI spoofer, a carrier-lock bypass,
 or a replacement LPA. IMEIs, source subscription identities, authentication
 material, capabilities, carrier policy and profile deletion are not patched.
-Only the destination fingerprint and explicit port text are saved in private
-framework preferences. The old observation-only settings do not enable routing
-on upgrade. Module logs contain status labels, not EIDs, fingerprints, ICCIDs,
-IMEIs or activation codes; stock software may have its own sensitive logging.
+Routing preferences contain only the destination fingerprint and explicit port
+text. The old observation-only settings do not enable routing on upgrade.
+Module logs contain status labels, not EIDs, fingerprints, ICCIDs, IMEIs or
+activation codes; stock software may have its own sensitive logging.
 
-## Export diagnostics
+## Record and export diagnostics
 
-With Python 3 and your existing ADB, run:
+No computer or live maintainer connection is needed:
+
+1. Open **Diagnostics → Start recording**, allow notifications, and explicitly
+   choose **5, 15, 30 or 60 minutes**. Approve the app’s root request. Wait for
+   **Recording redacted events** before making your own attempt.
+2. **Stop recording** in the app or its notification, then **Review report →
+   Export file…**. Android’s file picker lets you choose the name and destination.
+   A cloud document provider uploads only if you choose it as the destination.
+3. Use **Delete saved report** when finished. Starting another recording asks
+   before replacing the previous report; export it first to keep both.
+
+Recording is **off by default** and never resumes automatically. It stops at the
+chosen duration (including root approval), at **1 MiB**, or when you stop it;
+older records are not silently discarded. Root/reader startup has a 30-second
+limit. The saved JSONL stays in app-private, backup-excluded storage after stopping
+or reopening the app. A missing `capture_end` indicates interruption. Deleting
+app data or uninstalling removes the private report, not exported copies.
+
+Reports include installed versions, Android release/API/security patch, saved
+routing on/off and port (or unknown), elapsed receipt times, module readiness and
+routing events when emitted, native card/download errors, and Android pairing,
+check-in, integrity-token, attestation-exchange and peer-status categories.
+Destination identifiers and fingerprints, phone numbers, credentials, QR/session
+material, tokens, signed data, APDUs and raw exception text are never saved.
+The app has no network permission and does not upload reports automatically.
+
+The recorder reads existing logs for the owner-user module, SIM Manager and Play
+services through `su`; it adds no routing or attestation hooks. It changes no log
+levels, clears no buffers, starts/restarts no phone apps and initiates no transfer.
+**Reader started is not hook readiness or transfer success.** The initial tail can
+predate capture. Unknown messages are counted rather than saved, and suppressed
+messages and the other phone’s logs remain unavailable. Nearby categories can
+also belong to other Play services features: correlate the timing, not just a code.
+
+### Optional host tools
+
+Keep the scripts with their `app/src/main/resources/diagnostic-rules.tsv`
+allowlist. With Python 3 and your existing ADB, run:
 
 ```sh
 python tools/diagnostics.py --serial YOUR_ADB_SERIAL --root --output diagnostics.json
@@ -160,7 +196,8 @@ did not emit. The duration is explicit (1–3600 seconds);
 Ctrl+C stops early. Files are create-only. The initial log tail can be older than
 the capture, and unavailable/suppressed logs cannot be recovered. No apps are
 started/restarted, log levels changed, buffers cleared or transfers initiated.
-The installed module does not persist native logs itself.
+Both recorders use the same reviewed allowlist; neither saves unrecognized raw
+messages. Existing installations before 0.4.0 have only the host tools.
 
 ## Build and validation
 
@@ -183,7 +220,11 @@ changes, removed cards, non-throwing slot polling, unchanged hardware slot lists
 and incomplete hooks. Discovery tests cover real-inventory conversion,
 active/inactive and nonconsecutive ports,
 manual fallback, protected request setup, failed/empty scans, timeout/cancellation
-and redacted diagnostics.
+and redacted diagnostics. Recorder tests share Android/Python privacy fixtures
+and cover root denial, stop, elapsed-time expiry, create-only persistence,
+capacity and exact reader cleanup on stop/EOF/timeout. Diagnostic labels are
+machine-readable; UI strings and duration plurals use the existing English
+Android resource catalog.
 These tests do not exercise the live UI, Android permission enforcement, ART,
 radio firmware, real eUICC cryptography or carrier servers. They cannot establish
 universal compatibility. No proprietary APK or signing key is included.

@@ -50,4 +50,35 @@
     <string name="status_off">Connected. Saved routing: OFF. Restart both scoped processes if they previously used a destination.</string>
     <string name="status_route">Connected. Saved destination fingerprint %1$s; port: %2$s. Restart both scoped processes before a fresh attempt. Check module logs for hook readiness.</string>
     <string name="single_port">only active port</string>
+    <string name="diagnostics">Diagnostics</string>
+    <string name="diagnostics_explanation">Record locally before an attempt, then stop and review the report. Root access and a visible notification are required. Only reviewed status labels, error codes, versions and saved routing mode/port are kept; no identifiers, activation codes, tokens, QR/session material, APDUs or raw messages. Recording stops at your time limit or 1 MiB. Nothing uploads automatically; you choose the export destination. Unknown or suppressed messages and the other phone’s logs are unavailable. Nearby events can also come from other Play services features.</string>
+    <string name="diagnostics_start">Start recording</string>
+    <string name="diagnostics_stop">Stop recording</string>
+    <string name="diagnostics_review">Review report</string>
+    <string name="diagnostics_export">Export file…</string>
+    <string name="diagnostics_delete">Delete saved report</string>
+    <string name="diagnostics_delete_confirm">Delete only this app’s saved diagnostic report? Exported copies are not deleted.</string>
+    <string name="diagnostics_duration">Recording limit</string>
+    <plurals name="diagnostics_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <string name="diagnostics_replace">Replace saved report</string>
+    <string name="diagnostics_replace_confirm">Starting a new recording replaces the saved report. Export it first if you want to keep it.</string>
+    <string name="diagnostics_idle">Recording is off. No saved report.</string>
+    <string name="diagnostics_saved">Recording is off. A saved report is available; a missing capture_end record means it was interrupted.</string>
+    <string name="diagnostics_starting">Waiting for root and the log reader…</string>
+    <string name="diagnostics_recording">Recording redacted events. Reader started; this does not prove hook readiness or transfer success.</string>
+    <string name="diagnostics_stopping">Stopping the diagnostic reader…</string>
+    <string name="diagnostics_stopped">Recording stopped. Review or export the saved report.</string>
+    <string name="diagnostics_expired">Time limit reached. Recording stopped; the report is saved.</string>
+    <string name="diagnostics_full">1 MiB limit reached. Recording stopped; earlier records were preserved.</string>
+    <string name="diagnostics_permission">Use the owner user and allow notifications to record diagnostics. Enable notifications for this app in Android settings if they are blocked.</string>
+    <string name="diagnostics_permission_granted">Notifications allowed. Choose Start recording when ready.</string>
+    <string name="diagnostics_start_failed">Could not start diagnostics. Check that SIM Manager, Play services and notifications are available.</string>
+    <string name="diagnostics_reader_failed">The reader did not start or ended unexpectedly. Check root approval. No transfer was started by the recorder.</string>
+    <string name="diagnostics_read_failed">Capture failed. The saved report may be incomplete.</string>
+    <string name="diagnostics_storage_failed">Could not read or save the report. Check app storage; an existing report is never overwritten without confirmation.</string>
+    <string name="diagnostics_exported">Report exported to your chosen destination.</string>
+    <string name="diagnostics_export_failed">Export failed or its preview was lost. The destination may be empty or incomplete. Reopen the report and try again.</string>
 </resources>

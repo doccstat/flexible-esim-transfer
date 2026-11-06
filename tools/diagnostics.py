@@ -7,32 +7,10 @@ from pathlib import Path
 import re
 import subprocess
 
+from redaction import parse_message
+
 MODULE = "com.lixingchi.flexibleesimtransfer"
 PACKAGES = (MODULE, "com.google.android.euicc", "com.google.android.gms")
-BLOCKED = {
-    "EID_MISMATCH", "ADDRESS_MISMATCH", "INVALID_SELECTION", "INVALID_PORT",
-    "INVENTORY_UNAVAILABLE", "AMBIGUOUS_CARD", "CARD_NOT_FOUND", "NOT_EUICC",
-    "INVALID_ADDRESS", "SELECT_PORT", "PORT_INACTIVE", "INVALID_PORT_ADDRESS",
-    "RESTART_REQUIRED", "SETTINGS_CHANGED_RESTART_REQUIRED", "CARD_MOVED_RESTART_REQUIRED",
-    "DESTINATION_UNAVAILABLE", "ERROR_CALLBACK_FAILED", "SETTINGS_UNAVAILABLE",
-    "HOOKS_INCOMPLETE", "CONTEXT_UNAVAILABLE", "SETTINGS_CHANGED", "UNAVAILABLE",
-    "PORT_MISMATCH", "SUBSCRIPTIONS_UNAVAILABLE", "SUBSCRIPTION_NOT_FOUND",
-}
-EVENTS = {
-    "hooks": {"READY:LPA", "READY:GMS", "INCOMPLETE;new_downloads_blocked_where_guards_loaded"},
-    "inventory": {"destination_first"},
-    "inventory_bridge": {"READY", "UNAVAILABLE"},
-    "inventory_read": {"READY", "EMPTY", "FAILED"},
-    "manager": {"routing:" + name for name in (
-        "getEid", "getEuiccInfo", "getAvailableMemoryInBytes", "downloadSubscription",
-        "getDownloadableSubscriptionMetadata", "getDefaultDownloadableSubscriptionList",
-        "continueOperation", "switchToSubscription", "updateSubscriptionNickname")},
-    "service": {"destination_verified"},
-    "card": {"destination_verified:" + name for name in (
-        "requestEuiccChallenge", "authenticateServer", "prepareDownload", "loadBoundProfilePackage")},
-    "blocked": BLOCKED,
-    "service_result": {"UNAVAILABLE"},
-}
 
 
 def events(text):
@@ -44,11 +22,9 @@ def events(text):
         match = re.search(r"\b(hooks|inventory|inventory_bridge|inventory_read|manager|service|card|blocked|service_result): (\S+)$", line)
         if not match:
             continue
-        event, value = match.groups()
-        if value in EVENTS.get(event, set()) or (
-            event == "service_result" and re.fullmatch(r"(?:download|metadata)=-?\d{1,10}", value)
-        ):
-            result.append({"event": event, "value": value})
+        record = parse_message("module", match[0])
+        if record:
+            result.append({"event": record["event"], "value": record["value"]})
     return result[-500:]
 
 
@@ -58,7 +34,7 @@ def routing_exceptions(text):
         if "AndroidRuntime" not in line:
             continue
         match = re.search(r"\b" + re.escape(MODULE) + r"\.Selection\$Blocked: ([A-Z_]+)$", line)
-        if match and match[1] in BLOCKED:
+        if match and parse_message("module", "blocked: " + match[1]):
             result.append(match[1])
     return result[-50:]
 
