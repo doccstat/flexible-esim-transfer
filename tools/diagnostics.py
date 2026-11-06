@@ -21,6 +21,8 @@ BLOCKED = {
 EVENTS = {
     "hooks": {"READY:LPA", "READY:GMS", "INCOMPLETE;new_downloads_blocked_where_guards_loaded"},
     "inventory": {"destination_first"},
+    "inventory_bridge": {"READY", "UNAVAILABLE"},
+    "inventory_read": {"READY", "EMPTY", "FAILED"},
     "manager": {"routing:" + name for name in (
         "getEid", "getEuiccInfo", "getAvailableMemoryInBytes", "downloadSubscription",
         "getDownloadableSubscriptionMetadata", "getDefaultDownloadableSubscriptionList",
@@ -39,7 +41,7 @@ def events(text):
         if "FlexibleEsimTransfer" not in line:
             continue
         # Framework prefixes vary. Export only complete, known event payloads, never raw lines.
-        match = re.search(r"\b(hooks|inventory|manager|service|card|blocked|service_result): (\S+)$", line)
+        match = re.search(r"\b(hooks|inventory|inventory_bridge|inventory_read|manager|service|card|blocked|service_result): (\S+)$", line)
         if not match:
             continue
         event, value = match.groups()
