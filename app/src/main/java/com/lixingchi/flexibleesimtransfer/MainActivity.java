@@ -1,6 +1,7 @@
 package com.lixingchi.flexibleesimtransfer;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.graphics.Insets;
 import android.text.InputType;
@@ -16,7 +17,8 @@ public final class MainActivity extends Activity {
     private SettingsStore settings;
     private TextView status;
     private EditText eid;
-    private Button observe;
+    private EditText port;
+    private Button route;
     private Button off;
 
     @Override public void onCreate(Bundle state) {
@@ -44,21 +46,40 @@ public final class MainActivity extends Activity {
         eid.setSaveEnabled(false);
         eid.setImportantForAutofill(EditText.IMPORTANT_FOR_AUTOFILL_NO);
         body.addView(eid);
-        observe = new Button(this);
-        observe.setText(R.string.observe);
-        body.addView(observe);
-        observe.setOnClickListener(view -> {
-            try {
-                String selected = Selection.fingerprint(eid.getText().toString());
-                settings.save(selected, () -> eid.setText(""));
-            } catch (IllegalArgumentException invalid) {
+        port = new EditText(this);
+        port.setHint(R.string.port_hint);
+        port.setInputType(InputType.TYPE_CLASS_TEXT);
+        port.setSingleLine(true);
+        body.addView(port);
+        route = new Button(this);
+        route.setText(R.string.route);
+        body.addView(route);
+        route.setOnClickListener(view -> {
+            final String selected;
+            try { selected = Selection.fingerprint(eid.getText().toString()); }
+            catch (IllegalArgumentException invalid) {
                 eid.setError(getString(R.string.invalid_eid));
+                return;
             }
+            String portText = port.getText().toString();
+            try { Selection.parsePort(portText); }
+            catch (IllegalArgumentException invalid) {
+                port.setError(getString(R.string.invalid_port));
+                return;
+            }
+            new AlertDialog.Builder(this).setTitle(R.string.route)
+                    .setMessage(R.string.confirm_routing)
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(R.string.enable, (dialog, which) ->
+                            settings.save(selected, portText, () -> eid.setText(""))).show();
         });
         off = new Button(this);
         off.setText(R.string.off);
         body.addView(off);
-        off.setOnClickListener(view -> settings.save("", () -> eid.setText("")));
+        off.setOnClickListener(view -> new AlertDialog.Builder(this).setTitle(R.string.off)
+                .setMessage(R.string.confirm_off).setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.off, (dialog, which) ->
+                        settings.save("", "", () -> { eid.setText(""); port.setText(""); })).show());
         status = text(body, R.string.disconnected);
         status.setAccessibilityLiveRegion(TextView.ACCESSIBILITY_LIVE_REGION_POLITE);
         text(body, R.string.warning);
@@ -86,11 +107,12 @@ public final class MainActivity extends Activity {
     }
 
     private void render() {
-        observe.setEnabled(settings.ready());
+        route.setEnabled(settings.ready());
         off.setEnabled(settings.ready());
         if (settings.saving) status.setText(R.string.saving);
         else if (settings.error != 0) status.setText(settings.error);
         else if (settings.confirmed.isEmpty()) status.setText(R.string.status_off);
-        else status.setText(getString(R.string.status_observe, settings.confirmed.substring(0, 12)));
+        else status.setText(getString(R.string.status_route, settings.confirmed.substring(0, 12),
+                settings.confirmedPort.isEmpty() ? getString(R.string.single_port) : settings.confirmedPort));
     }
 }
