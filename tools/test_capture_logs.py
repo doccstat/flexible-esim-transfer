@@ -27,6 +27,39 @@ class CaptureLogsTest(unittest.TestCase):
                 self.assertEqual(capture_logs.parse_line(native(text)),
                                  {"source": "native", "event": event, "codes": codes})
 
+    def test_transfer_connection_codes_omit_device_and_exception_details(self):
+        for text, event, codes in (
+            ("onConnectionResult: statusCode: 0, model: private-device, manufacturer: private-maker", "transfer_connection_result", [0]),
+            ("onConnectionResult: statusCode: 48503, model: null, manufacturer: null", "transfer_connection_result", [48503]),
+            ("showGenericError:false, destroyed:false, resultCode:48503", "transfer_generic_error", [48503]),
+            ("Failed to start the esim transfer session: 48503: private-url-token", "transfer_start_error", [48503]),
+            ("Failed to start the esim transfer session: com.google.android.gms.common.api.ApiException: 48503: private-url-token", "transfer_start_error", [48503]),
+        ):
+            with self.subTest(event=event, text=text):
+                self.assertEqual(capture_logs.parse_line(native(text)),
+                                 {"source": "native", "event": event, "codes": codes})
+
+    def test_transfer_phases_do_not_export_pairing_material(self):
+        for message, event in (
+            ("unAuthenticatedSessionConnected", "transfer_session_connected_unauthenticated"),
+            ("LPA onDeepLinkUrlUpdate", "transfer_qr_updated"),
+            ("Start QR code fallback for cloud transfer", "transfer_qr_fallback"),
+            ("Teardown failed with D2D connection timeout. Source is offline.", "transfer_teardown_timeout"),
+            ("Failed to start the esim transfer session: private-url-token", "transfer_start_failed"),
+        ):
+            self.assertEqual(capture_logs.parse_line(native(message)),
+                             {"source": "native", "event": event})
+        for message in (
+            "onConnectionResult: statusCode: 48503, model: private-device",
+            "onConnectionResult: statusCode: 89012345678901234567890123456789, model: private, manufacturer: private",
+            "showGenericError:false, destroyed:false, resultCode:48503 private-token",
+            "unAuthenticatedSessionConnected private-token",
+            "LPA onDeepLinkUrlUpdate private-url-token",
+            "Showing QR code fallback for sessionId: private-session and passcode: private-code",
+        ):
+            self.assertIsNone(capture_logs.parse_line(native(message)))
+        self.assertIsNone(capture_logs.parse_line(native("unAuthenticatedSessionConnected").replace("EuiccGoogle", "OtherApp")))
+
     def test_exception_messages_are_never_saved(self):
         line = "E/EuiccGoogle(123): Caused by: com.android.euicc.service.EuiccServiceException: secret-eid-token (Error Code=0x803ff)"
         self.assertEqual(capture_logs.parse_line(line),
