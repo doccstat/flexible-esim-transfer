@@ -52,6 +52,17 @@ def events(text):
     return result[-500:]
 
 
+def routing_exceptions(text):
+    result = []
+    for line in text.splitlines():
+        if "AndroidRuntime" not in line:
+            continue
+        match = re.search(r"\b" + re.escape(MODULE) + r"\.Selection\$Blocked: ([A-Z_]+)$", line)
+        if match and match[1] in BLOCKED:
+            result.append(match[1])
+    return result[-50:]
+
+
 def package_version(text):
     result = {}
     for key in ("versionName", "versionCode"):
@@ -109,8 +120,11 @@ def main():
         report["scope_note"] = "Package presence only; verify owner-user scope in the framework UI."
         logs += "\n" + run("framework logs", "shell", f"su -c '{cli} log cat'")
     report["events"] = events(logs)
+    report["routing_exceptions"] = routing_exceptions(run(
+        "crash log", "logcat", "-d", "-b", "crash", "-v", "brief", "AndroidRuntime:E", "*:S"))
     report["errors"] = errors
-    report["limitations"] = "No events does not prove hooks loaded. No SIM inventory, credentials, raw logs or source-line data collected."
+    report["limitations"] = ("No events does not prove hooks loaded. Routing exceptions may predate the current build/process. "
+                              "No SIM inventory, credentials, raw logs or source-line data collected.")
     with args.output.open("x", encoding="utf-8") as output:
         json.dump(report, output, indent=2)
         output.write("\n")

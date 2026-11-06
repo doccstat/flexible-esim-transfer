@@ -255,7 +255,14 @@ public final class TransferRouter extends XposedModule {
                 "getFirstActiveEuiccLogicalSlotId", "getFirstActiveEuiccSlotIdAndPort")) {
             install(slots.getDeclaredMethod(name), chain -> {
                 telephony = (TelephonyManager) tm.invoke(chain.getThisObject());
-                Selection.Target target = target();
+                Selection.Target target;
+                try { target = target(); }
+                catch (Selection.Blocked blocked) {
+                    // Service startup polls these getters; use their native unavailable values.
+                    emit("blocked", reason(blocked));
+                    return name.equals("getFirstActiveEuiccSlotIdAndPort")
+                            ? new AbstractMap.SimpleImmutableEntry<>(-1, -1) : -1;
+                }
                 if (target == null) return chain.proceed();
                 if (name.equals("getFirstActiveEuiccLogicalSlotId")) return target.logicalSlot();
                 if (name.equals("getFirstActiveEuiccSlotIdAndPort"))
@@ -267,7 +274,12 @@ public final class TransferRouter extends XposedModule {
                 Class.forName("android.telephony.UiccSlotInfo", false, loader), 0).getClass();
         install(slots.getDeclaredMethod("getPreferredEuiccSlotId", slotArray), chain -> {
             telephony = (TelephonyManager) tm.invoke(chain.getThisObject());
-            Selection.Target target = target();
+            Selection.Target target;
+            try { target = target(); }
+            catch (Selection.Blocked blocked) {
+                emit("blocked", reason(blocked));
+                return -1;
+            }
             return target == null ? chain.proceed() : target.slot();
         });
         install(slots.getDeclaredMethod("getEidForSlot", int.class), chain -> {

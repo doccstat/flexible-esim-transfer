@@ -178,6 +178,61 @@ public class TransferRouterTest {
         load("com.google.android.euicc");
         assertEquals(SOURCE_EID, new EuiccManager(4).getEid());
     }
+    private void assertSlotsUnavailable(FixtureSlots slots) {
+        assertEquals(Map.entry(-1, -1), slots.getFirstActiveEuiccSlotIdAndPort());
+        assertEquals(-1, slots.getActiveEuiccSlotId());
+        assertEquals(-1, slots.getFirstActiveEuiccSlotId());
+        assertEquals(-1, slots.getFirstActiveEuiccLogicalSlotId());
+        assertEquals(-1, slots.getPreferredEuiccSlotId(new UiccSlotInfo[0]));
+    }
+    @Test public void changedDestinationDoesNotCrashSlotPollingOrUnblockDownloads() throws Exception {
+        load("com.google.android.euicc");
+        FixtureSlots slots = slots();
+        assertEquals(Map.entry(1, 0), slots.getFirstActiveEuiccSlotIdAndPort());
+        HookHarness.preferences.put(Selection.KEY, Selection.fingerprint(SOURCE_EID));
+        assertSlotsUnavailable(slots);
+        assertTrue(HookHarness.logs.toString().contains("blocked: SETTINGS_CHANGED_RESTART_REQUIRED"));
+        EuiccServiceImpl service = new EuiccServiceImpl();
+        for (int slot : List.of(0, 1))
+            assertEquals(1, service.onDownloadSubscription(slot, 0, null, false, false, null).result);
+        assertEquals(0, service.calls);
+        EuiccCardManager card = new EuiccCardManager();
+        AtomicInteger failures = new AtomicInteger();
+        for (String eid : List.of(EID, SOURCE_EID))
+            card.requestEuiccChallenge(eid, Runnable::run, (code, value) -> {
+                assertEquals(-1, code); assertNull(value); failures.incrementAndGet();
+            });
+        assertEquals(2, failures.get());
+        assertEquals(0, card.calls);
+        assertEquals(SOURCE_EID, new EuiccManager(4).createForCardId(4).getEid());
+        assertThrows(Selection.Blocked.class, () -> new EuiccManager(4).getEid());
+        load("com.google.android.euicc");
+        assertEquals(Map.entry(0, 0), slots.getFirstActiveEuiccSlotIdAndPort());
+    }
+    @Test public void removalKeepsSlotPollingUnavailableEvenAfterReinsertion() throws Exception {
+        load("com.google.android.euicc");
+        FixtureSlots slots = slots();
+        assertEquals(1, slots.getFirstActiveEuiccSlotId());
+        tm.cards = List.of(builtIn);
+        assertSlotsUnavailable(slots);
+        assertTrue(HookHarness.logs.toString().contains("blocked: CARD_NOT_FOUND"));
+        tm.cards = List.of(builtIn, removable);
+        assertSlotsUnavailable(slots);
+        PendingIntent callback = new PendingIntent();
+        new EuiccManager(4).downloadSubscription(new DownloadableSubscription(), true, callback);
+        assertEquals(2, callback.result);
+        assertEquals(-1, EuiccManager.downloadedCard);
+    }
+    @Test public void slotPollingDoesNotSuppressNativeExceptionsWhenRoutingIsOff() throws Exception {
+        HookHarness.preferences.clear();
+        load("com.google.android.euicc");
+        FixtureSlots slots = slots();
+        IllegalStateException failure = new IllegalStateException("native slot failure");
+        slots.failure = failure;
+        assertSame(failure, assertThrows(IllegalStateException.class, slots::getFirstActiveEuiccSlotIdAndPort));
+        assertSame(failure, assertThrows(IllegalStateException.class,
+                () -> slots.getPreferredEuiccSlotId(new UiccSlotInfo[0])));
+    }
     @Test public void incompleteHookSetupKeepsFinalGuardsClosed() throws Exception {
         HookHarness.rejectHook = "getPreferredEuiccSlotId";
         TransferRouter module = HookHarness.load("com.google.android.euicc", 10001);
@@ -185,6 +240,7 @@ public class TransferRouterTest {
         Context context = new Context(); context.telephony = tm; new Application().attach(context);
         assertTrue(HookHarness.logs.toString().contains("INCOMPLETE"));
         assertFalse(HookHarness.logs.toString().contains("READY:LPA"));
+        assertEquals(Map.entry(-1, -1), slots().getFirstActiveEuiccSlotIdAndPort());
         EuiccServiceImpl service = new EuiccServiceImpl();
         assertEquals(1, service.onDownloadSubscription(1, 0, null, false, false, null).result);
         assertEquals(0, service.calls);
