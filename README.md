@@ -3,7 +3,8 @@
 Route Android’s incoming eSIM transfers and new profile downloads to a real
 eUICC you choose, including a removable SIM-form-factor eUICC.
 
-**0.3.0 adds automatic eUICC discovery and an explicit card/port picker.**
+Includes automatic eUICC discovery and an explicit card/port picker.
+**0.3.1 handles blocked slot-status queries without throwing a routing exception.**
 Destination routing is implemented and ready for a controlled trial, but no
 successful carrier transfer has been validated. There is no carrier, country,
 phone-model or card-brand allowlist. Your carrier and the destination card still have to support the
@@ -101,10 +102,13 @@ checked against the same destination; signed payloads are never rewritten.
 
 Missing, ambiguous, inactive or moved targets do not fall back to the built-in
 chip. After a pinned target disappears or settings change, that process requires
-restart, even if the old selection is restored. The module never turns a native
-error into success or retries a carrier/card transaction. The stock framework’s
-port-resolution policy still applies; a conflicting port is rejected rather
-than silently enabling another one.
+restart, even if the old selection is restored. Slot-status queries report no
+usable slot while blocked, rather than throwing the routing exception during
+service startup. Transfer options may remain unavailable until restart; this
+does not enable transfers or fall back to another card. The module never turns
+a native error into success or retries a carrier/card transaction. The stock
+framework’s port-resolution policy still applies; a conflicting port is rejected
+rather than silently enabling another one.
 
 This is not SIM cloning, an arbitrary EID/IMEI spoofer, a carrier-lock bypass,
 or a replacement LPA. IMEIs, source subscription identities, authentication
@@ -129,7 +133,9 @@ These settings are explicitly labelled operator-reported, not independently
 verified; defaults are `unknown`. The script changes no device state.
 
 The report contains Android/app versions, module status, sanitized routing,
-inventory-reader status and error/result events, and unavailable checks. Serial
+inventory-reader status and error/result events, allowlisted routing-exception
+codes from Android’s crash buffer, and unavailable checks. Crash records may
+predate the current build or process; they are not current routing status. Serial
 numbers, destination identifiers, activation codes and raw logs are excluded.
 Review before sharing.
 Nothing is uploaded, and existing output files are never overwritten. No events
@@ -152,9 +158,10 @@ python -B -m unittest discover -s tools -p 'test_*.py'
 Unit tests exercise the production interceptors with Android/LPA doubles:
 entitlement selection → card-bound download → slot verification → final card
 operation, plus original errors, source lookups, cancellation/configuration
-changes, removed cards and incomplete hooks. Discovery tests cover real-inventory
-conversion, active/inactive and nonconsecutive ports, manual fallback, protected
-request setup, failed/empty scans, timeout/cancellation and redacted diagnostics.
+changes, removed cards, non-throwing slot polling and incomplete hooks. Discovery
+tests cover real-inventory conversion, active/inactive and nonconsecutive ports,
+manual fallback, protected request setup, failed/empty scans, timeout/cancellation
+and redacted diagnostics.
 These tests do not exercise the live UI, Android permission enforcement, ART,
 radio firmware, real eUICC cryptography or carrier servers. They cannot establish
 universal compatibility. No proprietary APK or signing key is included.

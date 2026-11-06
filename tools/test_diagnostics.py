@@ -50,6 +50,26 @@ FlexibleEsimTransfer: inventory_read: port=7
                           for node in manifest.findall("permission")], [(permission, "signature")])
         self.assertEqual([node.get(android + "name") for node in manifest.findall("uses-permission")], [permission])
 
+    def test_routing_crashes_export_only_known_reason_codes(self):
+        raw = """E/AndroidRuntime(123): Caused by: com.lixingchi.flexibleesimtransfer.Selection$Blocked: SETTINGS_CHANGED_RESTART_REQUIRED
+E/AndroidRuntime(123): com.lixingchi.flexibleesimtransfer.Selection$Blocked: RESTART_REQUIRED
+E/OtherApp(123): com.lixingchi.flexibleesimtransfer.Selection$Blocked: EID_MISMATCH
+E/AndroidRuntime(123): com.other.app.Selection$Blocked: EID_MISMATCH
+E/AndroidRuntime(123): com.lixingchi.flexibleesimtransfer.Selection$Blocked: PRIVATE_TOKEN
+E/AndroidRuntime(123): com.lixingchi.flexibleesimtransfer.Selection$Blocked: EID_MISMATCH secret
+E/AndroidRuntime(123): com.lixingchi.flexibleesimtransfer.Selection$Blocked: 89012345678901234567890123456789
+E/AndroidRuntime(123): Process: private.package, PID: 123
+"""
+        self.assertEqual(diagnostics.routing_exceptions(raw), [
+            "SETTINGS_CHANGED_RESTART_REQUIRED", "RESTART_REQUIRED"])
+
+    def test_missing_truncated_or_long_crash_logs_are_bounded(self):
+        self.assertEqual(diagnostics.routing_exceptions("permission denied"), [])
+        self.assertEqual(diagnostics.routing_exceptions(
+            "E/AndroidRuntime(123): com.lixingchi.flexibleesimtransfer.Selection$Blocked: RESTART_"), [])
+        line = "E/AndroidRuntime(123): com.lixingchi.flexibleesimtransfer.Selection$Blocked: EID_MISMATCH\n"
+        self.assertEqual(diagnostics.routing_exceptions(line * 60), ["EID_MISMATCH"] * 50)
+
     def test_package_output_keeps_only_versions(self):
         self.assertEqual(diagnostics.package_version("versionCode=2 minSdk=33\nversionName=0.2.0-routing\nuid=123 token=secret"),
                          {"versionName": "0.2.0-routing", "versionCode": "2"})

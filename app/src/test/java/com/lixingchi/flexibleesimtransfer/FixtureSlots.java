@@ -6,6 +6,7 @@ import java.util.Map;
 /** Deliberately not named after any R8 merged class. */
 public class FixtureSlots {
     public TelephonyManager telephony;
+    public RuntimeException failure;
     public TelephonyManager getTelephonyManager() { return telephony; }
     public int getActiveEuiccSlotId() { return noArgs("getActiveEuiccSlotId", 0); }
     public int getFirstActiveEuiccSlotId() { return noArgs("getFirstActiveEuiccSlotId", 0); }
@@ -15,7 +16,10 @@ public class FixtureSlots {
     }
     public int getPreferredEuiccSlotId(UiccSlotInfo[] slots) {
         return HookHarness.call(FixtureSlots.class, "getPreferredEuiccSlotId", this,
-                new Class<?>[]{UiccSlotInfo[].class}, new Object[]{slots}, (r, a) -> 0);
+                new Class<?>[]{UiccSlotInfo[].class}, new Object[]{slots}, (r, a) -> {
+                    if (failure != null) throw failure;
+                    return 0;
+                });
     }
     public String getEidForSlot(int slot) {
         return HookHarness.call(FixtureSlots.class, "getEidForSlot", this,
@@ -26,6 +30,9 @@ public class FixtureSlots {
                 });
     }
     private <T> T noArgs(String name, T value) {
-        return HookHarness.call(FixtureSlots.class, name, this, new Class<?>[]{}, new Object[]{}, (r, a) -> value);
+        return HookHarness.call(FixtureSlots.class, name, this, new Class<?>[]{}, new Object[]{}, (r, a) -> {
+            if (failure != null) throw failure;
+            return value;
+        });
     }
 }
