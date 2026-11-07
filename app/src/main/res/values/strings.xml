@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Flexible eSIM Transfer</string>
     <string name="instructions">Choose the receiving eUICC and an active port below. Reading cards does not enable routing or change any SIM.</string>
+    <string name="esim_risk">Transfers can leave you without access to your eSIM or cellular service, even if a download fails. Carrier reissue may be needed. Test a recoverable, nonessential line first. You are responsible for testing and recovery; this software is provided without warranty.</string>
     <string name="refresh_cards">Refresh cards</string>
     <string name="scanning">Reading eUICCs from SIM Manager…</string>
     <string name="cards_found">Detected eUICCs: %1$d. No destination is selected automatically.</string>

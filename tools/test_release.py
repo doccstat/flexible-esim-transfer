@@ -115,8 +115,16 @@ class ReleasePipelineTests(unittest.TestCase):
         self.assertNotIn("secrets.", checks)
         self.assertNotIn("pull_request_target", checks)
         self.assertNotIn("environment: release", checks)
-        self.assertIn("testDebugUnitTest :app:lintDebug :app:assembleRelease", source)
-        self.assertIn("testDebugUnitTest :app:lintDebug :app:assembleRelease", checks)
+        for workflow in (source, checks):
+            self.assertIn("testDebugUnitTest :app:testReleaseUnitTest :app:lintDebug :app:assembleRelease", workflow)
+            self.assertIn("tools/build_zygisk.py", workflow)
+            self.assertIn("ndk;30.0.16248370", workflow)
+        for workflow in (source, distribution):
+            self.assertIn("tools/release.py verify-zygisk", workflow)
+            self.assertGreaterEqual(workflow.count("FlexibleEsimTransfer-Zygisk.zip.sha256"), 2)
+            self.assertLess(workflow.index("--draft=true"), workflow.index("gh release upload"))
+            self.assertGreater(workflow.index("--draft=false"), workflow.index("gh release upload"))
+        self.assertNotIn("tools/build_zygisk.py", distribution)
 
     def test_gradle_wrapper_and_distribution_are_pinned(self):
         wrapper = release.ROOT / "gradle/wrapper"

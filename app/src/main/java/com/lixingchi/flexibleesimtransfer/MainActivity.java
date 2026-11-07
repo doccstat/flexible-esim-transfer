@@ -53,6 +53,7 @@ public final class MainActivity extends Activity {
         });
         scroll.addView(body);
         text(body, R.string.app_name).setTextSize(24);
+        text(body, R.string.esim_risk);
         text(body, R.string.instructions);
         refresh = new Button(this);
         refresh.setText(R.string.refresh_cards);
