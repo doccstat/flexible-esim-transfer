@@ -1,6 +1,14 @@
 # Synthetic input<TAB>expected JSON (or DROP). Shared JVM/Python privacy fixtures.
 I/FlexibleEsimTransfer(123): com.lixingchi.flexibleesimtransfer: hooks: READY:LPA	{"source":"module","event":"hooks","value":"READY:LPA"}
 I/FlexibleEsimTransfer(123): hooks: READY:GMS	{"source":"module","event":"hooks","value":"READY:GMS"}
+I/FlexibleEsimTransfer(123): hooks: READY:PHONE	{"source":"module","event":"hooks","value":"READY:PHONE"}
+I/FlexibleEsimTransfer(123): card_session: STARTED	{"source":"module","event":"card_session","value":"STARTED"}
+I/FlexibleEsimTransfer(123): card_session: ENDED	{"source":"module","event":"card_session","value":"ENDED"}
+I/FlexibleEsimTransfer(123): card_session: UNAVAILABLE	{"source":"module","event":"card_session","value":"UNAVAILABLE"}
+I/FlexibleEsimTransfer(123): card_session: CLEANUP_FAILED	{"source":"module","event":"card_session","value":"CLEANUP_FAILED"}
+I/FlexibleEsimTransfer(123): card_session: STARTED SECRET_EID	DROP
+I/FlexibleEsimTransfer(123): card_session: SECRET_NONCE	DROP
+I/FlexibleEsimTransfer(123): hooks: READY:PHONE SECRET_FINGERPRINT	DROP
 I/FlexibleEsimTransfer(123): hooks: INCOMPLETE;new_downloads_blocked_where_guards_loaded	{"source":"module","event":"hooks","value":"INCOMPLETE;new_downloads_blocked_where_guards_loaded"}
 I/FlexibleEsimTransfer(123): inventory: destination_first	{"source":"module","event":"inventory","value":"destination_first"}
 I/FlexibleEsimTransfer(123): manager: routing:getEid	{"source":"module","event":"manager","value":"routing:getEid"}

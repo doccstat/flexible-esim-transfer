@@ -55,7 +55,8 @@ public final class DiagnosticService extends Service {
             int[] uids = DiagnosticReport.uids(this);
             SettingsStore settings = (SettingsStore) getApplication();
             String header = DiagnosticReport.header(this, seconds,
-                    DiagnosticReport.configuration(settings.ready(), settings.confirmed, settings.confirmedPort));
+                    DiagnosticReport.configuration(settings.ready(), settings.confirmed, settings.confirmedPort,
+                            settings.confirmedPreserveSession));
             recorder = new DiagnosticRecorder(android.os.SystemClock::elapsedRealtime);
             running = true;
             new Thread(() -> {

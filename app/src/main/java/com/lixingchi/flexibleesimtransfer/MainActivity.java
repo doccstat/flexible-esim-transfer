@@ -25,7 +25,7 @@ public final class MainActivity extends Activity {
     private SettingsStore settings;
     private TextView status, scanStatus, manualHints;
     private EditText eid, port;
-    private Button route, off, refresh;
+    private Button route, off, refresh, preserveSession;
     private CheckBox showEids;
     private RadioGroup destinations;
     private LinearLayout manualFields;
@@ -92,13 +92,24 @@ public final class MainActivity extends Activity {
         route.setText(R.string.route);
         body.addView(route);
         route.setOnClickListener(view -> confirmRoute());
+        preserveSession = new Button(this);
+        body.addView(preserveSession);
+        preserveSession.setOnClickListener(view -> {
+            boolean enable = !settings.confirmedPreserveSession;
+            confirmation = new AlertDialog.Builder(this).setTitle(R.string.preserve_session)
+                    .setMessage(enable ? R.string.confirm_session_on : R.string.confirm_session_off)
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(enable ? R.string.enable_session : R.string.disable_session,
+                            (dialog, which) -> settings.save(settings.confirmed, settings.confirmedPort, enable, () -> {}))
+                    .show();
+        });
         off = new Button(this);
         off.setText(R.string.off);
         body.addView(off);
         off.setOnClickListener(view -> {
             confirmation = new AlertDialog.Builder(this).setTitle(R.string.off)
                     .setMessage(R.string.confirm_off).setNegativeButton(android.R.string.cancel, null)
-                    .setPositiveButton(R.string.off, (dialog, which) -> settings.save("", "", () -> {
+                    .setPositiveButton(R.string.off, (dialog, which) -> settings.save("", "", false, () -> {
                         eid.setText(""); port.setText(""); manual = false;
                         selectedCard = null; selectedPort = null; rebuildDestinations();
                     })).show();
@@ -243,7 +254,7 @@ public final class MainActivity extends Activity {
                 .setMessage(destination + "\n\n" + getString(R.string.confirm_routing))
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.enable, (dialog, which) ->
-                        settings.save(fingerprint, portText, () -> eid.setText(""))).show();
+                        settings.save(fingerprint, portText, settings.confirmedPreserveSession, () -> eid.setText(""))).show();
     }
 
     private int selectionError(Exception error) {
@@ -286,6 +297,10 @@ public final class MainActivity extends Activity {
         manualFields.setVisibility(manual ? View.VISIBLE : View.GONE);
         route.setEnabled(settings.ready() && !scanning && (manual || selectedCard != null));
         off.setEnabled(settings.ready());
+        preserveSession.setEnabled(settings.ready());
+        preserveSession.setText(settings.ready()
+                ? (settings.confirmedPreserveSession ? R.string.session_on : R.string.session_off)
+                : R.string.preserve_session);
         refresh.setEnabled(!scanning);
         if (settings.saving) status.setText(R.string.saving);
         else if (settings.error != 0) status.setText(settings.error);

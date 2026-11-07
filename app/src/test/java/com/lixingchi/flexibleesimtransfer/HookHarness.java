@@ -11,7 +11,8 @@ public final class HookHarness {
     public static final Map<Executable, XposedInterface.Hooker> hooks = new HashMap<>();
     public static final List<String> logs = new ArrayList<>();
     public static final Map<String, Object> preferences = new HashMap<>();
-    public static String rejectHook;
+    public static String rejectHook, rejectDeoptimization;
+    public static final Set<Executable> deoptimized = new HashSet<>();
 
     @SuppressWarnings("unchecked")
     public static <T> T call(Class<?> owner, String name, Object receiver, Class<?>[] types,
@@ -35,7 +36,7 @@ public final class HookHarness {
     @SuppressWarnings("unchecked") private static <T, E extends Throwable> T rethrow(Throwable e) throws E { throw (E) e; }
 
     public static TransferRouter load(String packageName, int uid) throws Exception {
-        hooks.clear(); logs.clear();
+        hooks.clear(); logs.clear(); deoptimized.clear();
         TransferRouter module = new TransferRouter();
         SharedPreferences prefs = (SharedPreferences) Proxy.newProxyInstance(HookHarness.class.getClassLoader(),
                 new Class<?>[]{SharedPreferences.class}, (o, m, a) -> {
@@ -46,6 +47,11 @@ public final class HookHarness {
                 new Class<?>[]{XposedInterface.class}, (o, m, a) -> {
                     if (m.getName().equals("getRemotePreferences")) return prefs;
                     if (m.getName().equals("log")) { logs.add(Arrays.toString(a)); return null; }
+                    if (m.getName().equals("deoptimize")) {
+                        Executable method = (Executable) a[0];
+                        if (method.getName().equals(rejectDeoptimization)) return false;
+                        deoptimized.add(method); return true;
+                    }
                     if (m.getName().equals("hook")) {
                         Executable method = (Executable) a[0];
                         if (method.getName().equals(rejectHook)) throw new IllegalStateException("hook rejected");

@@ -30,11 +30,12 @@ import java.util.concurrent.Executors;
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.XposedModule;
 
-/** Process-local destination routing; the phone service and source subscription inventory stay real. */
+/** Real destination routing and opt-in native channel leases; never substitutes identity or results. */
 @SuppressLint({"PrivateApi", "BlockedPrivateApi", "SoonBlockedPrivateApi", "MissingPermission"})
 public final class TransferRouter extends XposedModule {
-    private static final String LPA = "com.google.android.euicc";
+    static final String LPA = "com.google.android.euicc";
     private static final String GMS = "com.google.android.gms";
+    private static final String PHONE = "com.android.phone";
     private static final String TAG = "FlexibleEsimTransfer";
     private final RoutingSession session = new RoutingSession();
     private final ThreadLocal<Boolean> inventoryRead = ThreadLocal.withInitial(() -> false);
@@ -46,14 +47,26 @@ public final class TransferRouter extends XposedModule {
     private volatile TelephonyManager telephony;
     private volatile Context context;
     private volatile boolean ready;
-    private boolean inventoryRegistered;
+    private boolean inventoryRegistered, phoneAttempted;
 
     @Override public void onPackageReady(PackageReadyParam param) {
         String name = param.getPackageName();
-        if ((!LPA.equals(name) && !GMS.equals(name)) || !param.isFirstPackage()
+        if ((!LPA.equals(name) && !GMS.equals(name) && !PHONE.equals(name)) || !param.isFirstPackage()
                 || param.getApplicationInfo().uid / 100000 != 0) return;
         try {
             prefs = getRemotePreferences(Selection.PREFS);
+            if (PHONE.equals(name)) {
+                if (phoneAttempted) return;
+                phoneAttempted = true;
+                new PhoneSessions(param.getClassLoader(), this::install, this::deoptimize, ctx -> {
+                    context = ctx;
+                    if (!routingConfigured() || !session.preservesCardSession()) return null;
+                    return target();
+                }, this::emit);
+                ready = true;
+                emit("hooks", "READY:PHONE");
+                return;
+            }
             install(Application.class.getDeclaredMethod("attach", Context.class), chain -> {
                 context = (Context) chain.getArg(0);
                 Object result = chain.proceed();
@@ -293,14 +306,18 @@ public final class TransferRouter extends XposedModule {
     }
 
     private boolean enabled() {
+        if (!routingConfigured()) return false;
+        if (!ready) throw new Selection.Blocked("HOOKS_INCOMPLETE");
+        return true;
+    }
+
+    private boolean routingConfigured() {
         if (prefs == null) throw new Selection.Blocked("SETTINGS_UNAVAILABLE");
         Map<String, ?> values = prefs.getAll();
         Object selected = values.get(Selection.KEY);
         Object port = values.get(Selection.PORT);
-        if (!session.enabled(selected == null ? "" : (String) selected, port == null ? "" : (String) port))
-            return false;
-        if (!ready) throw new Selection.Blocked("HOOKS_INCOMPLETE");
-        return true;
+        return session.enabled(selected == null ? "" : (String) selected, port == null ? "" : (String) port,
+                preserveCardSession(values));
     }
 
     private Selection.Target target() {
@@ -322,7 +339,8 @@ public final class TransferRouter extends XposedModule {
             String selected = (String) values.getOrDefault(Selection.KEY, null);
             Object port = values.get(Selection.PORT);
             String portText = port == null ? "" : (String) port;
-            if (!session.enabled(selected, portText)) throw new Selection.Blocked("SETTINGS_CHANGED");
+            if (!session.enabled(selected, portText, preserveCardSession(values)))
+                throw new Selection.Blocked("SETTINGS_CHANGED");
             List<Selection.Card> cards = CardInventory.selections(CardInventory.fromTelephony(inventory));
             return session.pin(Selection.resolve(selected, portText, cards));
         } catch (Throwable unavailable) {
@@ -330,6 +348,12 @@ public final class TransferRouter extends XposedModule {
             if (unavailable instanceof Selection.Blocked blocked) throw blocked;
             throw new Selection.Blocked("INVENTORY_UNAVAILABLE");
         }
+    }
+
+    private static boolean preserveCardSession(Map<String, ?> values) {
+        Object value = values.get(Selection.PRESERVE_SESSION);
+        if (value != null && !(value instanceof Boolean)) throw new Selection.Blocked("SETTINGS_UNAVAILABLE");
+        return Boolean.TRUE.equals(value);
     }
 
     private boolean subscriptionOnTarget(int subscriptionId, Selection.Target target) throws ReflectiveOperationException {

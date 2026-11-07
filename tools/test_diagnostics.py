@@ -21,6 +21,22 @@ I/FlexibleEsimTransfer: service_result: download=8901234567890123456789012345678
             {"event": "blocked", "value": "EID_MISMATCH"},
         ])
 
+    def test_phone_session_events_do_not_export_native_session_ids(self):
+        self.assertIn("com.android.phone", diagnostics.PACKAGES)
+        raw = """FlexibleEsimTransfer: hooks: READY:PHONE
+FlexibleEsimTransfer: card_session: STARTED
+FlexibleEsimTransfer: card_session: ENDED
+FlexibleEsimTransfer: card_session: UNAVAILABLE
+FlexibleEsimTransfer: card_session: CLEANUP_FAILED
+FlexibleEsimTransfer: card_session: STARTED PRIVATE_SESSION
+EuiccSession: startSession: PRIVATE_SESSION
+"""
+        self.assertEqual(diagnostics.events(raw), [
+            {"event": "hooks", "value": "READY:PHONE"},
+            *({"event": "card_session", "value": value}
+              for value in ("STARTED", "ENDED", "UNAVAILABLE", "CLEANUP_FAILED")),
+        ])
+
     def test_missing_or_truncated_logs_do_not_invent_success(self):
         self.assertEqual(diagnostics.events("permission denied"), [])
         self.assertEqual(diagnostics.events("FlexibleEsimTransfer: hooks: REA"), [])

@@ -10,6 +10,7 @@ final class Selection {
     static final String PREFS = "routing";
     static final String KEY = "destination_sha256";
     static final String PORT = "port";
+    static final String PRESERVE_SESSION = "preserve_card_session";
 
     record Port(int index, int logicalSlot, boolean active) { }
     record Card(String fingerprint, int cardId, int slot, boolean euicc, List<Port> ports) { }

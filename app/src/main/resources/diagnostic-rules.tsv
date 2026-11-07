@@ -1,12 +1,13 @@
 # Shared Android/Python allowlist: source<TAB>event<TAB>field type<TAB>whole-message regex.
 # Only capture groups are exported. Never add a free-text capture group.
-module	hooks	value	hooks: (READY:LPA|READY:GMS|INCOMPLETE;new_downloads_blocked_where_guards_loaded)
+module	hooks	value	hooks: (READY:LPA|READY:GMS|READY:PHONE|INCOMPLETE;new_downloads_blocked_where_guards_loaded)
 module	inventory	value	inventory: (destination_first)
 module	inventory_bridge	value	inventory_bridge: (READY|UNAVAILABLE)
 module	inventory_read	value	inventory_read: (READY|EMPTY|FAILED)
 module	manager	value	manager: (routing:(?:getEid|getEuiccInfo|getAvailableMemoryInBytes|downloadSubscription|getDownloadableSubscriptionMetadata|getDefaultDownloadableSubscriptionList|continueOperation|switchToSubscription|updateSubscriptionNickname))
 module	service	value	service: (destination_verified)
 module	card	value	card: (destination_verified:(?:requestEuiccChallenge|authenticateServer|prepareDownload|loadBoundProfilePackage))
+module	card_session	value	card_session: (STARTED|ENDED|UNAVAILABLE|CLEANUP_FAILED)
 module	blocked	value	blocked: (EID_MISMATCH|ADDRESS_MISMATCH|INVALID_SELECTION|INVALID_PORT|INVENTORY_UNAVAILABLE|AMBIGUOUS_CARD|CARD_NOT_FOUND|NOT_EUICC|INVALID_ADDRESS|SELECT_PORT|PORT_INACTIVE|INVALID_PORT_ADDRESS|RESTART_REQUIRED|SETTINGS_CHANGED_RESTART_REQUIRED|CARD_MOVED_RESTART_REQUIRED|DESTINATION_UNAVAILABLE|ERROR_CALLBACK_FAILED|SETTINGS_UNAVAILABLE|HOOKS_INCOMPLETE|CONTEXT_UNAVAILABLE|SETTINGS_CHANGED|UNAVAILABLE|PORT_MISMATCH|SUBSCRIPTIONS_UNAVAILABLE|SUBSCRIPTION_NOT_FOUND)
 module	service_result	result	service_result: (UNAVAILABLE|(?:download|metadata)=-?[0-9]{1,10})
 native	card_callback	codes	Error in createCallback with result code (-?[0-9]{1,10})\.
