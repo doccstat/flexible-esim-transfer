@@ -6,10 +6,16 @@ eUICC you choose, including a removable SIM-form-factor eUICC.
 Includes automatic eUICC discovery and an explicit card/port picker.
 **0.4.1 adds optional native card-session preservation for metadata and downloads.**
 On-device redacted diagnostic recording and manual export are included.
-Destination routing is implemented and ready for a controlled trial, but no
-successful carrier transfer has been validated. There is no carrier, country,
-phone-model or card-brand allowlist. Your carrier and the destination card still have to support the
-stock transfer and cryptographic download protocols.
+A native incoming transfer has completed on Android 17 with a removable eUICC
+and session preservation enabled. There is no carrier, country, phone-model or
+card-brand allowlist. Your carrier and the destination card still have to support
+the stock transfer and cryptographic download protocols.
+
+**Play Integrity interference remains unresolved:** package-wide Play services
+scope loads the framework into more than the transfer process. Turning routing
+off does not unload that injection. Removing it requires disabling the module in
+the framework and restarting affected processes with the supported,
+root-preserving procedure.
 
 ## Requirements
 
@@ -238,13 +244,17 @@ Use JDK 17+, Gradle 8.13, Android SDK 36 and build-tools 35.0.0. Build in a
 disposable copy:
 
 ```sh
-gradle --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease
+./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease
 python -B -m unittest discover -s tools -p 'test_*.py'
 ```
 
 - `app/build/outputs/apk/debug/app-debug.apk`: debug-signed **test build**.
-- `app/build/outputs/apk/release/app-release-unsigned.apk`: unsigned release;
-  supply your own durable signing key for distribution.
+- `app/build/outputs/apk/release/app-release-unsigned.apk`: unsigned release.
+
+The wrapper pins Gradle 8.13; use `gradlew.bat` on Windows.
+[Release setup](docs/releasing.md) describes the permanent signing key, stable
+`versionCode-versionName` releases, certificate/checksum verification and LSPosed
+listing distribution. CI never generates a signing key or chooses a version.
 
 Unit tests exercise the production interceptors with Android/LPA doubles:
 entitlement selection → card-bound download → slot verification → final card
