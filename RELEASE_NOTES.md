@@ -1,27 +1,34 @@
-# Flexible eSIM Transfer 0.4.1
+# Flexible eSIM Transfer 0.5.0
 
-- Choose a real built-in or removable eUICC and an active port for incoming
-  Android eSIM transfers and all new Google SIM Manager downloads.
-- Discover cards through the protected inventory bridge, or enter an EID
-  manually. No destination is selected automatically.
-- Optional **Preserve card session** maintains a real native channel lease across
-  metadata authentication and the following download. Defaults off; requires
-  owner-user Phone scope in addition to SIM Manager and Play services.
-- Record bounded, private diagnostics on the phone, then review, export or delete
-  them. No automatic recording or upload.
-- A native incoming transfer completed on Android 17 with a removable eUICC and
-  session preservation enabled.
+Two independent alternatives, included together in every release:
 
-Requires Android 13+, root, a modern libxposed API 101 framework, Google SIM
-Manager and Play services, and an Android-visible active eUICC. Carrier
-eligibility and cryptographic authorization remain native.
+- **`FlexibleEsimTransfer.apk`** — existing Vector/libxposed route, with its own
+  settings, card picker and private diagnostic recorder.
+- **`FlexibleEsimTransfer-Zygisk.zip`** — standalone KernelSU WebUI and native
+  Zygisk/LSPlant backend. No Flexible eSIM Transfer APK or Vector required.
+- Both use versionCode **8**, version **0.5.0**, and have individual SHA-256 files.
+- Concise setup documentation and visible eSIM-loss warnings in both interfaces.
+  Test a recoverable line first; recovery and use are your responsibility under
+  the existing MIT warranty/liability terms.
 
-**Play Integrity:** this version injects into Play services through package-wide
-framework scope and can interfere with integrity checks. The interference is not
-yet resolved. Turning routing off does not unload the framework; framework
-activation changes require a supported restart, preserving temporary root where
-applicable.
+Both routes share real destination/port selection, fail-closed download guards,
+optional native card-session preservation and bounded redacted diagnostics.
+The ZIP targets owner-user Phone, SIM Manager and Play services main/UI only;
+other processes are rejected before Java/ART initialization. Its native bootstrap
+still passes through the Zygisk provider before rejected processes unload it.
 
-The UI uses English Android resources and fallback. See the README for card/port
-selection, activation and private diagnostic export, and `docs/releasing.md` for
-signing-key compatibility when moving from a debug APK.
+Use **one backend at a time**. New versions detect both implementations in the
+same process and block routing; older APKs lack this guard. Settings remain
+independent. No installer or UI silently disables modules, changes scope, migrates
+preferences, restarts Android, or operates on SIM profiles.
+
+Requires Android 13+, Google SIM Manager/Play services and a real Android-visible
+active eUICC. The APK needs a libxposed API 101 framework. The ZIP needs KernelSU
+Manager and a Zygisk API 5 provider. ZIP settings/diagnostics are root-only;
+uninstall retains them. Export/delete/forget are explicit choices.
+
+The standalone route has host/build checks, **not yet live ART, carrier-transfer
+or integrity validation**. Play Integrity interference remains unresolved; no
+DEVICE/STRONG result is promised. Native authorization, signed data, card errors
+and carrier eligibility are not bypassed. Activation requires the device’s
+supported restart procedure; preserve temporary root where applicable.

@@ -1,0 +1,32 @@
+apply plugin: 'com.android.library'
+evaluationDependsOn(':app')
+def version = project(':app').android.defaultConfig
+// AGP's Java directory filters are not applied consistently; stage only the shared runtime.
+def shared = tasks.register('syncSharedRuntime', Sync) {
+    from('../app/src/main/java') {
+        include '**/BackendGuard.java', '**/TransferRouter.java', '**/PhoneSessions.java',
+                '**/Selection.java', '**/RoutingSession.java', '**/CardInventory.java',
+                '**/InventoryBridge.java', '**/DiagnosticEvents.java', '**/DiagnosticJournal.java',
+                '**/DiagnosticRecorder.java', '**/DiagnosticReport.java'
+    }
+    into layout.buildDirectory.dir('generated/shared')
+}
+
+android {
+    namespace 'com.lixingchi.flexibleesimtransfer.standalone'
+    compileSdk 36
+    defaultConfig {
+        minSdk 33
+        targetSdk 35
+        buildConfigField 'String', 'MODULE_NAME', '"' + version.versionName + '"'
+        buildConfigField 'int', 'MODULE_CODE', version.versionCode.toString()
+    }
+    buildFeatures { buildConfig true }
+    sourceSets.main.java.srcDirs 'java', layout.buildDirectory.dir('generated/shared')
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+tasks.named('preBuild').configure { dependsOn shared }
+dependencies { compileOnly 'io.github.libxposed:api:101.0.0' }

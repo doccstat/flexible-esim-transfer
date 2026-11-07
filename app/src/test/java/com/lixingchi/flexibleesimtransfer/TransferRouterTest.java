@@ -113,6 +113,16 @@ public class TransferRouterTest {
         assertSame(mapping.removable, mapping.getPsimSlotIds());
         assertSame(mapping.embedded, mapping.getEsimSlotIds());
     }
+    @Test public void twoBackendsBlockAtTheFinalGuardWithoutChangingPreferences() throws Exception {
+        load("com.google.android.euicc");
+        BackendGuard.enter("zygisk");
+        assertSlotsUnavailable(slots());
+        assertEquals(1, new EuiccServiceImpl().onDownloadSubscription(1, 0,
+                new DownloadableSubscription(), true, false, null).result);
+        assertEquals(HASH, HookHarness.preferences.get(Selection.KEY));
+        assertEquals(SOURCE_EID, slots().getEidForSlot(0));
+        assertTrue(HookHarness.logs.toString(), HookHarness.logs.stream().anyMatch(s -> s.contains("BACKEND_CONFLICT")));
+    }
     @Test public void explicitSourceQueriesRemainReal() throws Exception {
         load("com.google.android.euicc");
         EuiccManager original = new EuiccManager(4);

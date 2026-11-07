@@ -48,13 +48,32 @@ public final class TransferRouter extends XposedModule {
     private volatile Context context;
     private volatile boolean ready;
     private boolean inventoryRegistered, phoneAttempted;
+    private String backend = "vector";
+    private java.util.function.Consumer<Context> attached;
+
+    void standalone(java.util.function.Consumer<Context> listener) { backend = "zygisk"; attached = listener; }
+
+    List<CardInventory.Card> inventory() {
+        boolean previous = inventoryRead.get();
+        inventoryRead.set(true);
+        try { return CardInventory.fromTelephony(context.getSystemService(TelephonyManager.class).getUiccCardsInfo()); }
+        finally { inventoryRead.set(previous); }
+    }
 
     @Override public void onPackageReady(PackageReadyParam param) {
         String name = param.getPackageName();
         if ((!LPA.equals(name) && !GMS.equals(name) && !PHONE.equals(name)) || !param.isFirstPackage()
                 || param.getApplicationInfo().uid / 100000 != 0) return;
+        BackendGuard.enter(backend);
         try {
             prefs = getRemotePreferences(Selection.PREFS);
+            install(Application.class.getDeclaredMethod("attach", Context.class), chain -> {
+                context = (Context) chain.getArg(0);
+                Object result = chain.proceed();
+                if (attached != null) attached.accept(context);
+                else if (LPA.equals(name)) registerInventory();
+                return result;
+            });
             if (PHONE.equals(name)) {
                 if (phoneAttempted) return;
                 phoneAttempted = true;
@@ -67,12 +86,6 @@ public final class TransferRouter extends XposedModule {
                 emit("hooks", "READY:PHONE");
                 return;
             }
-            install(Application.class.getDeclaredMethod("attach", Context.class), chain -> {
-                context = (Context) chain.getArg(0);
-                Object result = chain.proceed();
-                if (LPA.equals(name)) registerInventory();
-                return result;
-            });
             // Install the final guards first: an incomplete setup must not continue a new download.
             if (LPA.equals(name)) installGuards(param.getClassLoader());
             installFramework();
@@ -312,6 +325,7 @@ public final class TransferRouter extends XposedModule {
     }
 
     private boolean routingConfigured() {
+        BackendGuard.check();
         if (prefs == null) throw new Selection.Blocked("SETTINGS_UNAVAILABLE");
         Map<String, ?> values = prefs.getAll();
         Object selected = values.get(Selection.KEY);

@@ -50,7 +50,7 @@ jobs:
           packages: platform-tools
       - name: Install pinned verification tools
         run: sdkmanager 'build-tools;35.0.0'
-      - name: Download and verify the exact source APK
+      - name: Download and verify both exact source artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SIGNING_CERT_SHA256: ${{ vars.ANDROID_SIGNING_CERT_SHA256 }}
@@ -60,9 +60,12 @@ jobs:
           mkdir -p "$RUNNER_TEMP/verified-release"
           gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
             --pattern 'FlexibleEsimTransfer.apk' --pattern 'FlexibleEsimTransfer.apk.sha256' \
+            --pattern 'FlexibleEsimTransfer-Zygisk.zip' --pattern 'FlexibleEsimTransfer-Zygisk.zip.sha256' \
             --dir "$RUNNER_TEMP/verified-release"
           python3 tools/release.py verify "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer.apk" "$tag" \
             --checksum "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer.apk.sha256"
+          python3 tools/release.py verify-zygisk "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer-Zygisk.zip" "$tag" \
+            --checksum "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer-Zygisk.zip.sha256"
       - name: Create or replace the matching listing release
         env:
           GH_TOKEN: ${{ secrets.LSPOSED_RELEASE_TOKEN }}
@@ -72,16 +75,22 @@ jobs:
           tag=$(cat "$RUNNER_TEMP/release-tag")
           releases=$(gh api --paginate --slurp "repos/$repo/releases?per_page=100")
           if jq -e --arg tag "$tag" '[.[][] | select(.tag_name == $tag)] | length > 0' <<<"$releases" >/dev/null; then
+            gh release edit "$tag" --repo "$repo" --draft=true
             gh release upload "$tag" --repo "$repo" --clobber \
               "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer.apk" \
-              "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer.apk.sha256"
+              "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer.apk.sha256" \
+              "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer-Zygisk.zip" \
+              "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer-Zygisk.zip.sha256"
             gh release edit "$tag" --repo "$repo" \
               --title "$(cat "$RUNNER_TEMP/release-title")" \
               --notes-file "$RUNNER_TEMP/release-notes.md" --draft=false --prerelease=false --latest
           else
             gh release create "$tag" --repo "$repo" \
               --title "$(cat "$RUNNER_TEMP/release-title")" \
-              --notes-file "$RUNNER_TEMP/release-notes.md" --latest \
+              --notes-file "$RUNNER_TEMP/release-notes.md" --draft \
               "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer.apk" \
-              "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer.apk.sha256"
+              "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer.apk.sha256" \
+              "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer-Zygisk.zip" \
+              "$RUNNER_TEMP/verified-release/FlexibleEsimTransfer-Zygisk.zip.sha256"
+            gh release edit "$tag" --repo "$repo" --draft=false --prerelease=false --latest
           fi

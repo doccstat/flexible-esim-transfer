@@ -37,6 +37,7 @@ public final class HookHarness {
 
     public static TransferRouter load(String packageName, int uid) throws Exception {
         hooks.clear(); logs.clear(); deoptimized.clear();
+        System.clearProperty("com.lixingchi.flexibleesimtransfer.backend");
         TransferRouter module = new TransferRouter();
         SharedPreferences prefs = (SharedPreferences) Proxy.newProxyInstance(HookHarness.class.getClassLoader(),
                 new Class<?>[]{SharedPreferences.class}, (o, m, a) -> {

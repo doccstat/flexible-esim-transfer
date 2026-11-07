@@ -34,12 +34,19 @@ jobs:
         with:
           packages: platform-tools
       - name: Install pinned SDK components
-        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0' 'ndk;30.0.16248370' 'cmake;3.31.0'
       - name: Test, lint and build without signing credentials
         run: |
           set -euo pipefail
           python3 -B -m unittest discover -s tools -p 'test_*.py'
-          ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleRelease
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:testReleaseUnitTest :app:lintDebug :app:assembleRelease :zygisk:lintRelease :zygisk:assembleRelease
+          mapfile -t api < <(find "$HOME/.gradle/caches/modules-2/files-2.1/io.github.libxposed/api/101.0.0" -name '*.aar')
+          test "${#api[@]}" -eq 1
+          python3 tools/build_zygisk.py --sdk "$ANDROID_HOME" --ndk "$ANDROID_HOME/ndk/30.0.16248370" \
+            --java "$JAVA_HOME" --api "${api[0]}" --cmake "$ANDROID_HOME/cmake/3.31.0/bin/cmake" \
+            --ninja "$ANDROID_HOME/cmake/3.31.0/bin/ninja" --out "$RUNNER_TEMP/zygisk-build"
+          mkdir -p dist
+          cp "$RUNNER_TEMP/zygisk-build/FlexibleEsimTransfer-Zygisk.zip"* dist/
       - name: Sign with the permanent key and verify the release identity
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -66,6 +73,8 @@ jobs:
           tag=$(python3 tools/release.py metadata | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag"])')
           python3 tools/release.py verify dist/FlexibleEsimTransfer.apk "$tag"
           (cd dist && sha256sum FlexibleEsimTransfer.apk >FlexibleEsimTransfer.apk.sha256)
+          python3 tools/release.py verify-zygisk dist/FlexibleEsimTransfer-Zygisk.zip "$tag" \
+            --checksum dist/FlexibleEsimTransfer-Zygisk.zip.sha256
       - name: Publish the stable source release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -81,16 +90,21 @@ jobs:
           version=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["name"])' <<<"$metadata")
           releases=$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100")
           if jq -e --arg tag "$tag" '[.[][] | select(.tag_name == $tag)] | length > 0' <<<"$releases" >/dev/null; then
-            gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$tag" --method PATCH \
-              -f "sha=$GITHUB_SHA" -F force=true
-            gh release upload "$tag" --repo "$GITHUB_REPOSITORY" --clobber \
-              dist/FlexibleEsimTransfer.apk dist/FlexibleEsimTransfer.apk.sha256
-            gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --title "$version" \
-              --notes-file RELEASE_NOTES.md --draft=false --prerelease=false --latest
+            gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=true
           else
             gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-              --title "$version" --notes-file RELEASE_NOTES.md --latest \
-              dist/FlexibleEsimTransfer.apk dist/FlexibleEsimTransfer.apk.sha256
+              --title "$version" --notes-file RELEASE_NOTES.md --draft
           fi
+          refs=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$tag")
+          if jq -e --arg ref "refs/tags/$tag" 'any(.[]; .ref == $ref)' <<<"$refs" >/dev/null; then
+            gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$tag" --method PATCH -f "sha=$GITHUB_SHA" -F force=true
+          else
+            gh api "repos/$GITHUB_REPOSITORY/git/refs" --method POST -f "ref=refs/tags/$tag" -f "sha=$GITHUB_SHA"
+          fi
+          gh release upload "$tag" --repo "$GITHUB_REPOSITORY" --clobber \
+            dist/FlexibleEsimTransfer.apk dist/FlexibleEsimTransfer.apk.sha256 \
+            dist/FlexibleEsimTransfer-Zygisk.zip dist/FlexibleEsimTransfer-Zygisk.zip.sha256
+          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --title "$version" \
+            --notes-file RELEASE_NOTES.md --draft=false --prerelease=false --latest
           # GITHUB_TOKEN release writes do not trigger release-event workflows.
           gh workflow run distribute-release.yml --repo "$GITHUB_REPOSITORY" --ref main
