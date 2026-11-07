@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 final class DiagnosticReport {
-    private static final String[] PACKAGES = {"com.lixingchi.flexibleesimtransfer", "com.google.android.euicc", "com.google.android.gms"};
+    private static final String[] PACKAGES = {"com.lixingchi.flexibleesimtransfer", "com.google.android.euicc", "com.google.android.gms", "com.android.phone"};
 
     static Path file(Context context) { return context.getNoBackupFilesDir().toPath().resolve("diagnostics.jsonl"); }
 
@@ -21,10 +21,11 @@ final class DiagnosticReport {
         return value != null && value.matches("[A-Za-z0-9._()+-]{1,100}") ? value : "unavailable";
     }
 
-    static Map<String, String> configuration(boolean available, String destination, String port) {
-        if (!available) return Map.of("saved_routing", "unknown", "saved_port", "unknown");
+    static Map<String, String> configuration(boolean available, String destination, String port, boolean preserveSession) {
+        if (!available) return Map.of("saved_routing", "unknown", "saved_port", "unknown", "saved_preserve_card_session", "unknown");
         String safePort = port.isEmpty() ? "auto" : port.matches("[0-9]{1,10}") ? port : "omitted";
-        return Map.of("saved_routing", destination.isEmpty() ? "off" : "on", "saved_port", safePort);
+        return Map.of("saved_routing", destination.isEmpty() ? "off" : "on", "saved_port", safePort,
+                "saved_preserve_card_session", preserveSession ? "on" : "off");
     }
 
     static String header(Context context, int seconds, Map<String, String> configuration) throws JSONException {
@@ -43,7 +44,7 @@ final class DiagnosticReport {
                 .put("android", new JSONObject().put("sdk", Build.VERSION.SDK_INT)
                         .put("release", version(Build.VERSION.RELEASE)).put("security_patch", version(Build.VERSION.SECURITY_PATCH)))
                 .put("configuration", new JSONObject(configuration))
-                .put("scope", "owner_user_module_sim_manager_play_services")
+                .put("scope", "owner_user_module_sim_manager_play_services_phone")
                 .put("initial_tail_may_predate_capture", true)
                 .put("note", "Saved settings and installed versions are not proof of loaded hooks. Elapsed times are reader receipt times. Unknown or suppressed events are not captured. Nearby events may belong to other features in Play services. An absent capture_end means interruption.")
                 .toString();

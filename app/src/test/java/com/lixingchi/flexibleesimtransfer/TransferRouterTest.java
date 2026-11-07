@@ -276,7 +276,7 @@ public class TransferRouterTest {
         assertEquals(0, service.calls);
     }
     @Test public void wrongPackageAndOtherAndroidUsersAreNotHooked() throws Exception {
-        HookHarness.load("com.android.phone", 10001);
+        HookHarness.load("com.android.server.telecom", 10001);
         assertTrue(HookHarness.hooks.isEmpty());
         HookHarness.load("com.google.android.gms", 1010001);
         assertTrue(HookHarness.hooks.isEmpty());

@@ -19,6 +19,7 @@ public final class SettingsStore extends Application implements XposedServiceHel
     Runnable changed;
     String confirmed = "";
     String confirmedPort = "";
+    boolean confirmedPreserveSession;
     int error = R.string.disconnected;
     boolean saving;
 
@@ -34,6 +35,7 @@ public final class SettingsStore extends Application implements XposedServiceHel
                 prefs = connected.getRemotePreferences(Selection.PREFS);
                 confirmed = prefs.getString(Selection.KEY, "");
                 confirmedPort = prefs.getString(Selection.PORT, "");
+                confirmedPreserveSession = prefs.getBoolean(Selection.PRESERVE_SESSION, false);
                 if (!confirmed.isEmpty() && !Selection.configured(confirmed)) throw new IllegalStateException();
                 Selection.parsePort(confirmedPort);
                 error = 0;
@@ -57,7 +59,7 @@ public final class SettingsStore extends Application implements XposedServiceHel
 
     boolean ready() { return prefs != null && !saving; }
 
-    void save(String fingerprint, String port, Runnable onSuccess) {
+    void save(String fingerprint, String port, boolean preserveSession, Runnable onSuccess) {
         if (!ready() || (!fingerprint.isEmpty() && !Selection.configured(fingerprint))) return;
         Selection.parsePort(port);
         SharedPreferences target = prefs;
@@ -66,7 +68,7 @@ public final class SettingsStore extends Application implements XposedServiceHel
         worker.execute(() -> {
             boolean ok;
             try { ok = target.edit().putString(Selection.KEY, fingerprint)
-                    .putString(Selection.PORT, port).commit(); }
+                    .putString(Selection.PORT, port).putBoolean(Selection.PRESERVE_SESSION, preserveSession).commit(); }
             catch (RuntimeException unavailable) { ok = false; }
             final boolean saved = ok;
             main.post(() -> {
@@ -75,6 +77,7 @@ public final class SettingsStore extends Application implements XposedServiceHel
                     if (saved) {
                         confirmed = fingerprint;
                         confirmedPort = port;
+                        confirmedPreserveSession = preserveSession;
                         error = 0;
                         onSuccess.run();
                     } else {

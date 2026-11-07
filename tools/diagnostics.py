@@ -10,7 +10,7 @@ import subprocess
 from redaction import parse_message
 
 MODULE = "com.lixingchi.flexibleesimtransfer"
-PACKAGES = (MODULE, "com.google.android.euicc", "com.google.android.gms")
+PACKAGES = (MODULE, "com.google.android.euicc", "com.google.android.gms", "com.android.phone")
 
 
 def events(text):
@@ -19,7 +19,7 @@ def events(text):
         if "FlexibleEsimTransfer" not in line:
             continue
         # Framework prefixes vary. Export only complete, known event payloads, never raw lines.
-        match = re.search(r"\b(hooks|inventory|inventory_bridge|inventory_read|manager|service|card|blocked|service_result): (\S+)$", line)
+        match = re.search(r"\b(hooks|inventory|inventory_bridge|inventory_read|manager|service|card|card_session|blocked|service_result): (\S+)$", line)
         if not match:
             continue
         record = parse_message("module", match[0])

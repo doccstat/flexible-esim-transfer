@@ -4,7 +4,8 @@ Route Android’s incoming eSIM transfers and new profile downloads to a real
 eUICC you choose, including a removable SIM-form-factor eUICC.
 
 Includes automatic eUICC discovery and an explicit card/port picker.
-**0.4.0 adds on-device, redacted diagnostic recording and manual export.**
+**0.4.1 adds optional native card-session preservation for metadata and downloads.**
+On-device redacted diagnostic recording and manual export are included.
 Destination routing is implemented and ready for a controlled trial, but no
 successful carrier transfer has been validated. There is no carrier, country,
 phone-model or card-brand allowlist. Your carrier and the destination card still have to support the
@@ -30,7 +31,8 @@ An incompatible LPA reports incomplete hooks; do not start a transfer then.
 
 1. Install the APK on the **receiving phone only**. Enable
    `com.lixingchi.flexibleesimtransfer` in your framework. Scope **SIM Manager
-   and Google Play services, owner user only**. Other packages/users are ignored.
+   and Google Play services, owner user only** (optional Phone scope below).
+   Other packages/users are ignored.
    Close existing transfers and activate the module in both processes using your
    framework’s supported, root-preserving restart procedure. Leave routing off.
 2. Open **Flexible eSIM Transfer**. It reads the real eUICCs and their ports from
@@ -38,17 +40,24 @@ An incompatible LPA reports incomplete hooks; do not start a transfer then.
    Built-in/removable status, physical slot, logical slot and inactive ports are
    shown. Use **Show full EIDs** if needed, then **Route to this eUICC** and confirm.
    **Enter EID manually** remains available if discovery cannot read your card.
-3. Close any existing transfer, then restart **both scoped processes** using
-   your framework’s supported activation procedure. Do not blindly reboot a
+3. If your card needs a continuous authentication channel, choose **Preserve card
+   session: OFF → Enable session preservation**. Also scope **Phone
+   (`com.android.phone`), owner user**; the option defaults off on new installs
+   and upgrades. It requires compatible native session APIs, described below.
+4. Close any existing transfer, then restart **all scoped processes** using
+   your framework’s supported activation procedure. Restarting Phone interrupts
+   cellular service. Do not blindly reboot a
    temporary-root phone: it may lose root. A stale process or previously issued
    transfer credential must not be reused after changing destination.
-4. Check framework logs tagged `FlexibleEsimTransfer` for `hooks: READY:LPA`
-   and `hooks: READY:GMS`, without `INCOMPLETE`. Then start a **fresh incoming
+5. Check framework logs tagged `FlexibleEsimTransfer` for `hooks: READY:LPA`
+   and `hooks: READY:GMS`, plus `hooks: READY:PHONE` when preserving sessions,
+   without `INCOMPLETE`. Then start a **fresh incoming
    transfer** through Android’s normal SIM settings, or a new QR-code download.
    Keep the stock authorization and confirmation steps.
-5. Verify the profile is on the selected card with your existing LPA and test
+6. Verify the profile is on the selected card with your existing LPA and test
    service. Close the flow, choose **Off / forget destination**, and restart
-   both scoped processes to restore stock behavior.
+   all scoped processes to restore stock behavior. This also disables session
+   preservation.
 
 **While enabled, this applies to all new downloads handled by SIM Manager,
 not only transfers.** Default destination identity and download-slot selection
@@ -87,7 +96,7 @@ Input, including port text, is not trimmed or rewritten.
 EIDs are masked by default. Discovered EIDs exist only in memory and in a
 package-restricted reply to the settings app; the reader requires the module’s
 signature-level permission. No ICCIDs or subscription details are transported.
-Only the selected EID’s fingerprint and port are saved. Scanned cards are cleared
+Only the selected EID’s fingerprint, port and session-preservation option are saved. Scanned cards are cleared
 when leaving the screen; screenshots and autofill are disabled.
 
 The UI currently ships in English, using Android string resources as the source
@@ -117,10 +126,34 @@ rather than silently enabling another one.
 This is not SIM cloning, an arbitrary EID/IMEI spoofer, a carrier-lock bypass,
 or a replacement LPA. IMEIs, source subscription identities, authentication
 material, capabilities, carrier policy and profile deletion are not patched.
-Routing preferences contain only the destination fingerprint and explicit port
-text. The old observation-only settings do not enable routing on upgrade.
+Routing preferences contain only the destination fingerprint, explicit port
+text and session-preservation option. The old observation-only settings do not enable routing on upgrade.
 Module logs contain status labels, not EIDs, fingerprints, ICCIDs, IMEIs or
 activation codes; stock software may have its own sensitive logging.
+
+## Preserve card session
+
+Some eUICCs discard authentication context when Android closes the logical channel
+between the challenge and server authentication. With this **default-off** option,
+the Phone adapter starts a real native session for Google SIM Manager’s routed
+metadata, default-list discovery and downloads. It counts that lease only for the selected port’s actual
+APDU sender, not other cards. Native authorization, payloads, errors and results
+are unchanged; no authentication is simulated or retried.
+
+The lease survives metadata completion so SIM Manager can continue its stored
+transaction in the following download. It ends when the native service connection
+exits or unbinds (including disconnect and native idle timeout), or dispatch throws.
+It does not keep the service alive or extend native timeouts. Other native session
+owners remain responsible for their own channels. Avoid concurrent SIM maintenance.
+
+This option needs `EuiccSession` and compatible `EuiccConnector`/APDU APIs in Phone;
+Android versions without them can still use destination routing with the option
+off. Missing Phone scope is not detected automatically: verify `READY:PHONE` before
+an attempt. Hook readiness does not prove actual channel reuse. `card_session:
+STARTED` means a native lease was acquired, not carrier acceptance. A card session
+error can have other causes; a real transfer still needs device validation.
+Changing this option requires restarting all scoped processes, just like changing
+the destination. The app does not restart them or change framework scope for you.
 
 ## Record and export diagnostics
 
@@ -143,15 +176,15 @@ or reopening the app. A missing `capture_end` indicates interruption. Deleting
 app data or uninstalling removes the private report, not exported copies.
 
 Reports include installed versions, Android release/API/security patch, saved
-routing on/off and port (or unknown), elapsed receipt times, module readiness and
-routing events when emitted, native card/download errors, and Android pairing,
+routing on/off, port and session-preservation option (or unknown), elapsed receipt
+times, module readiness and routing/session events when emitted, native card/download errors, and Android pairing,
 check-in, integrity-token, attestation-exchange and peer-status categories.
 Destination identifiers and fingerprints, phone numbers, credentials, QR/session
 material, tokens, signed data, APDUs and raw exception text are never saved.
 The app has no network permission and does not upload reports automatically.
 
-The recorder reads existing logs for the owner-user module, SIM Manager and Play
-services through `su`; it adds no routing or attestation hooks. It changes no log
+The recorder reads existing logs for the owner-user module, SIM Manager, Play
+services and Phone through `su`; recording adds no routing or attestation hooks. It changes no log
 levels, clears no buffers, starts/restarts no phone apps and initiates no transfer.
 **Reader started is not hook readiness or transfer success.** The initial tail can
 predate capture. Unknown messages are counted rather than saved, and suppressed
@@ -217,7 +250,11 @@ Unit tests exercise the production interceptors with Android/LPA doubles:
 entitlement selection → card-bound download → slot verification → final card
 operation, plus original errors, source lookups, cancellation/configuration
 changes, removed cards, non-throwing slot polling, unchanged hardware slot lists
-and incomplete hooks. Discovery tests cover real-inventory conversion,
+and incomplete hooks. Native-session doubles cover challenge lifetime, metadata →
+download continuity, opt-out, other cards/owners, service disconnect, cleanup,
+configuration/card changes, unchanged errors and required deoptimization. They
+model a card that loses its challenge on channel closure, not proof that every
+real card does. Discovery tests cover real-inventory conversion,
 active/inactive and nonconsecutive ports,
 manual fallback, protected request setup, failed/empty scans, timeout/cancellation
 and redacted diagnostics. Recorder tests share Android/Python privacy fixtures

@@ -40,11 +40,13 @@ public class DiagnosticEventsTest {
     }
 
     @Test public void configurationNeverExportsTheDestinationAndKeepsPortText() {
-        assertEquals(Map.of("saved_routing", "on", "saved_port", "007"),
-                DiagnosticReport.configuration(true, "SECRET_FINGERPRINT", "007"));
-        assertEquals("auto", DiagnosticReport.configuration(true, "", "").get("saved_port"));
-        assertEquals("unknown", DiagnosticReport.configuration(false, "SECRET", "SECRET").get("saved_port"));
-        assertEquals("omitted", DiagnosticReport.configuration(true, "SECRET", "89012345678901234567890123456789").get("saved_port"));
+        assertEquals(Map.of("saved_routing", "on", "saved_port", "007", "saved_preserve_card_session", "on"),
+                DiagnosticReport.configuration(true, "SECRET_FINGERPRINT", "007", true));
+        assertEquals("off", DiagnosticReport.configuration(true, "", "", false).get("saved_preserve_card_session"));
+        assertEquals("auto", DiagnosticReport.configuration(true, "", "", false).get("saved_port"));
+        assertEquals("unknown", DiagnosticReport.configuration(false, "SECRET", "SECRET", true).get("saved_port"));
+        assertEquals("unknown", DiagnosticReport.configuration(false, "SECRET", "SECRET", true).get("saved_preserve_card_session"));
+        assertEquals("omitted", DiagnosticReport.configuration(true, "SECRET", "89012345678901234567890123456789", false).get("saved_port"));
         assertEquals("unavailable", DiagnosticReport.version("https://SECRET_TOKEN"));
         assertEquals("26.44.31", DiagnosticReport.version("26.44.31"));
     }
