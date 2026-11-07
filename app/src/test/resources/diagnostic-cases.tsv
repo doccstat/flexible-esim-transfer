@@ -39,6 +39,22 @@ E/NearbyConnections(456): [DctPcpManager] Device integrity exchange with source 
 E/NearbyConnections(456): [DctPcpManager] target failed to exchange control messages for serviceId SECRET_SERVICE and client SECRET_CLIENT	{"source":"nearby","event":"dct_control_exchange_failed"}
 E/NearbyConnections(456): [DctEndpointChannel] blockedWrite timeout to wait for write complete of messageId SECRET_MESSAGE	{"source":"nearby","event":"dct_write_wait_failed"}
 W/NearbyConnections(456): com.google.android.gms.common.api.ApiException: -19: SECRET_EXCEPTION	{"source":"nearby","event":"nearby_api_exception","codes":[-19]}
+I/NearbyConnections(456): [DctEndpointManager] In handleRxControlMessage() SERVER received control frame type:DISCONNECTION_REQUEST (len:42 reason:DCT_ERROR_UNVERIFIED_INTEGRITY)	{"source":"nearby","event":"dct_peer_disconnect","value":"DCT_ERROR_UNVERIFIED_INTEGRITY"}
+I/NearbyConnections(456): [DctEndpointManager] In handleRxControlMessage() CLIENT received control frame type:DISCONNECTION_REQUEST (len:42 reason:UNRECOGNIZED)	{"source":"nearby","event":"dct_peer_disconnect","value":"UNRECOGNIZED"}
+I/NearbyConnections(456): [DctEndpointManager] In handleRxControlMessage() CLIENT received control frame type:DEVICE_INTEGRITY_ATTESTATION_ACK (len:42)	{"source":"nearby","event":"dct_control_received","value":"DEVICE_INTEGRITY_ATTESTATION_ACK"}
+I/NearbyConnections(456): [DctEndpointChannel] write control message frameType:DEVICE_INTEGRITY_ATTESTATION dataLen:42 messageId:9223372036854775807 from CLIENT (medium:WIFI_LAN inactiveMedium:SECRET_MEDIUM).	{"source":"nearby","event":"dct_control_write","value":"DEVICE_INTEGRITY_ATTESTATION"}
+I/NearbyConnections(456): [DctEndpointManager] send disconnection response frame successfully.	{"source":"nearby","event":"dct_disconnection_response_sent"}
+I/NearbyConnections(456): [DctEndpointChannel] Remote close incoming endpointChannel with medium WIFI_LAN (inactiveMedium:SECRET_MEDIUM), reason:DCT_ERROR_UNVERIFIED_INTEGRITY [CONTEXT SECRET_CONTEXT ]	{"source":"nearby","event":"dct_remote_channel_closed","value":"DCT_ERROR_UNVERIFIED_INTEGRITY"}
+I/NearbyConnections(456): [DctEndpointChannel] Local close outgoing endpointChannel with medium BLE (inactiveMedium:UNKNOWN_MEDIUM), reason:DCT_ERROR_REQUEST_FAILED	{"source":"nearby","event":"dct_local_channel_closed","value":"DCT_ERROR_REQUEST_FAILED"}
+I/NearbyConnections(456): [DctEndpointManager] In handleRxControlMessage() SERVER received control frame type:DISCONNECTION_REQUEST (len:42 reason:SECRET_REASON)	DROP
+I/NearbyConnections(456): [DctEndpointManager] In handleRxControlMessage() SERVER received control frame type:DISCONNECTION_REQUEST (len:42 reason:DCT_ERROR_SECRET_REASON)	DROP
+I/NearbyConnections(456): [DctEndpointManager] In handleRxControlMessage() CLIENT received control frame type:SECRET_FRAME (len:42)	DROP
+I/NearbyConnections(456): [DctEndpointChannel] write control message frameType:SECRET_FRAME dataLen:42 messageId:123 from CLIENT (medium:WIFI_LAN inactiveMedium:UNKNOWN_MEDIUM).	DROP
+I/NearbyConnections(456): [DctEndpointChannel] Remote close incoming endpointChannel with medium WIFI_LAN (inactiveMedium:UNKNOWN_MEDIUM), reason:DCT_ERROR_SECRET_REASON	DROP
+I/NearbyConnections(456): [DctEndpointChannel] Local close incoming endpointChannel with medium WIFI_LAN (inactiveMedium:UNKNOWN_MEDIUM), reason:SECRET_REASON	DROP
+I/NearbyConnections(456): [DctEndpointManager] In handleRxControlMessage() SERVER received control frame type:DISCONNECTION_REQUEST (len:42 reason:DCT_ERROR_UNVERIFIED_INTEGRITY) SECRET_DATA	DROP
+I/NearbyConnections(456): [DctEndpointChannel] Remote close incoming endpointChannel with medium WIFI_LAN (inactiveMedium:UNKNOWN_MEDIUM), reason:DCT_ERROR_UNVERIFIED_INTEGRITY SECRET_DATA	DROP
+I/OtherApp(456): [DctEndpointManager] In handleRxControlMessage() SERVER received control frame type:DISCONNECTION_REQUEST (len:42 reason:DCT_ERROR_UNVERIFIED_INTEGRITY)	DROP
 I/NearbyConnections(456): [DctDeviceAttestationManager] Device integrity token: SECRET_TOKEN	DROP
 I/NearbyConnections(456): [DctDeviceAttestationManager] Attestation proto from remote device: SECRET_SIGNED_PROTO	DROP
 I/NearbyConnections(456): [DctPcpManager] Sending DEVICE_INTEGRITY_START_REQUEST with salt SECRET_NONCE	DROP

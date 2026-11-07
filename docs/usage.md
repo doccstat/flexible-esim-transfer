@@ -59,15 +59,19 @@ Choose **5, 15, 30 or 60 minutes**, then wait for **Recording redacted events**.
 Recording stops on request, at the duration or at **1 MiB**. It never resumes or
 uploads automatically. Closing the WebUI does not stop a timed recording.
 
-- **APK:** use Diagnostics and approve its root/notification requests. Stop
-  from the app or notification. Export uses Android’s file picker.
+- **APK:** use Diagnostics and approve its root/notification requests. It works
+  with the routing module disabled. Stop from the app or notification. Export
+  uses Android’s file picker.
 - **ZIP:** use WebUI Start/Stop/Review/Export/Delete. Export writes to owner-user
   Downloads using the exact filename you enter, including extension. Existing
   files are never replaced. Export and explicitly delete an old report before
   starting another.
 
-Reports include versions, saved setting labels, readiness and known error/result
-codes. They exclude destination identities/fingerprints, credentials, QR/session
+Reports include versions, saved setting labels, readiness, known error/result
+codes and allowlisted native handshake frame types/disconnection reasons. A frame
+write is not proof of delivery or acceptance; a peer's reason is not a decoded
+integrity verdict. Local and remote channel closures are recorded separately.
+Reports exclude destination identities/fingerprints, credentials, QR/session
 material, tokens, signed data, APDU bodies and arbitrary exception text. Unknown
 messages are omitted. A missing `capture_end` means interruption, not success.
 No recorder changes log levels, clears buffers, restarts apps or starts a transfer.
