@@ -20,6 +20,7 @@ final class InventorySocket {
         started = true;
         Thread thread = new Thread(() -> {
             try (LocalServerSocket server = new LocalServerSocket(NAME)) {
+                android.util.Log.i("FlexibleEsimTransfer", "inventory_bridge: READY");
                 while (true) try (LocalSocket socket = server.accept()) {
                     socket.setSoTimeout(3000);
                     if (socket.getPeerCredentials().getUid() != 0) continue;

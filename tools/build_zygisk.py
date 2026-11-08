@@ -69,7 +69,7 @@ def build(args):
     shutil.copyfile(source / 'GPL-3.0.txt', licenses / 'GPL-3.0.txt')
     (licenses / 'source.txt').write_text('Corresponding source and build/relink instructions:\n'
         'https://github.com/doccstat/flexible-esim-transfer/tree/' + version['tag'] + '\n', encoding='utf-8')
-    for name, path in [('LSPlant', 'lsplant/LICENSE'), ('Dobby', 'dobby/LICENSE'),
+    for name, path in [('LSPlant', 'lsplant/LICENSE'), ('Dobby', 'dobby/LICENSE'), ('XZ-Embedded', 'xz-embedded/COPYING'),
                        ('DexBuilder', 'lsplant/lsplant/src/main/jni/external/dex_builder/LICENSE'),
                        ('parallel-hashmap', 'lsplant/lsplant/src/main/jni/external/dex_builder/external/parallel_hashmap/LICENSE')]:
         shutil.copyfile(source / 'vendor' / path, licenses / (name + '.txt'))

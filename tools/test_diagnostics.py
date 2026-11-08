@@ -37,6 +37,14 @@ EuiccSession: startSession: PRIVATE_SESSION
               for value in ("STARTED", "ENDED", "UNAVAILABLE", "CLEANUP_FAILED")),
         ])
 
+    def test_bootstrap_exports_only_fixed_stages(self):
+        labels = ('SELECTED', 'JAVA_ENTRY', 'FAILED:PAYLOAD', 'FAILED:COMPANION', 'FAILED:COMPANION_FD',
+                  'FAILED:DEX_LOADER', 'FAILED:ART_INIT', 'FAILED:DEX_TRUST', 'FAILED:JAVA_ENTRY', 'FAILED:APPLICATION')
+        raw = '\n'.join('FlexibleEsimTransfer: bootstrap: ' + label for label in labels)
+        raw += '\nFlexibleEsimTransfer: bootstrap: FAILED:SECRET_EXCEPTION'
+        raw += '\nFlexibleEsimTransfer: bootstrap: FAILED:ART_INIT SECRET_DATA'
+        self.assertEqual(diagnostics.events(raw), [{'event': 'bootstrap', 'value': label} for label in labels])
+
     def test_missing_or_truncated_logs_do_not_invent_success(self):
         self.assertEqual(diagnostics.events("permission denied"), [])
         self.assertEqual(diagnostics.events("FlexibleEsimTransfer: hooks: REA"), [])

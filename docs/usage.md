@@ -28,6 +28,15 @@ Look for `hooks: READY:LPA` and `hooks: READY:GMS` in diagnostics, plus
 Saved settings, module installation and recorder readiness are not hook readiness.
 A fresh recording sees readiness only when the process emits it.
 
+For ZIP discovery failures, `bootstrap: SELECTED` means the native process filter
+matched; `bootstrap: JAVA_ENTRY` means the Java application hook was installed,
+not that routing is ready. `bootstrap: FAILED:<stage>` identifies payload,
+companion, DEX loader, ART initialization, DEX trust, Java entry or application
+attachment failure. `inventory_bridge: READY` means Phone bound its inventory
+socket; a successful Refresh must still read the real cards. These fixed labels
+are included in private diagnostics when recording is explicitly started before
+the device's supported activation procedure. No diagnostic action restarts it.
+
 ## Destination and session settings
 
 Routing and session preservation default off on a fresh installation. Discovery

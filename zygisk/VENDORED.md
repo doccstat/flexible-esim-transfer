@@ -13,12 +13,20 @@ Build recipes permit rebuilding/relinking the native module with modified source
 | `vendor/lsplant/lsplant/src/main/jni/external/dex_builder/external/parallel_hashmap` | https://github.com/greg7mdp/parallel-hashmap | `0cd57d29a959256ed66b2afdd1009928fc625d09` |
 | `vendor/dobby` | https://github.com/JingMatrix/Dobby | `05a09ac6807a6bb1726350e40ea4b127c1c79809` |
 | `include/zygisk.hpp` | https://github.com/topjohnwu/zygisk-module-sample | `8ce26128f81baaed0b969aaf7f52f886b61af4ab` |
+| `vendor/xz-embedded` | https://github.com/tukaani-project/xz-embedded | `ae63ae3a36ed01724674e8f3d750dc47bf125410` |
 
 LSPlant includes its JNI sources/license only; unused documentation/Gradle files
 are omitted. DexBuilder includes its source/build files; parallel-hashmap includes
 headers/build files/license. Dobby excludes hosted workflows and editor metadata. No dependency is
 resolved from a moving branch during a build. The Zygisk header retains its license
 and SHA-256 `f8d55e8b4f89d418c5941afe62ce6a09ddec1f4afd9a1b0a01eb40a93310dd28`.
+
+XZ Embedded (0BSD) includes only its unchanged userspace decoder headers,
+LZMA2/stream decoder, CRC32/CRC64 and license. Native builds enable CRC64 and
+bounded dynamic decoding; no checksum is ignored. ART MiniDebugInfo input,
+output and dictionary are each limited to 32 MiB; the outer ELF to 128 MiB.
+Malformed, truncated, trailing or unsupported streams fail closed. Decoder
+state is released after decoding, and symbol buffers after hook initialization.
 
 The Java payload includes the existing Apache-2.0
 `io.github.libxposed:api:101.0.0` API contract (`libxposed-api-LICENSE.txt`), not the framework or service implementation. A small local adapter

@@ -43,6 +43,14 @@ class ZygiskTests(unittest.TestCase):
                 self.assertNotIn(forbidden, text)
         self.assertFalse((ROOT / 'zygisk/module/service.sh').exists())
 
+    def test_bootstrap_logs_follow_uid_specialization(self):
+        source = (ROOT / 'zygisk/native/module.cpp').read_text()
+        pre, post = source.split('void postAppSpecialize(', 1)
+        self.assertNotIn('bootstrap: SELECTED', pre)
+        self.assertIn('bootstrap: SELECTED', post)
+        self.assertLess(post.index('if (failure)'), post.index('bool ok = bootstrap('))
+        self.assertIn('bootstrap: FAILED:%s', post)
+
     def test_frontend_is_local_and_has_no_apk_requirement(self):
         html = (ROOT / 'zygisk/module/webroot/index.html').read_text()
         self.assertIn("connect-src 'none'", html)

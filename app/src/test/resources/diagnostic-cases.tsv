@@ -10,6 +10,21 @@ I/FlexibleEsimTransfer(123): card_session: STARTED SECRET_EID	DROP
 I/FlexibleEsimTransfer(123): card_session: SECRET_NONCE	DROP
 I/FlexibleEsimTransfer(123): hooks: READY:PHONE SECRET_FINGERPRINT	DROP
 I/FlexibleEsimTransfer(123): hooks: INCOMPLETE;new_downloads_blocked_where_guards_loaded	{"source":"module","event":"hooks","value":"INCOMPLETE;new_downloads_blocked_where_guards_loaded"}
+I/FlexibleEsimTransfer(123): bootstrap: SELECTED	{"source":"module","event":"bootstrap","value":"SELECTED"}
+I/FlexibleEsimTransfer(123): bootstrap: JAVA_ENTRY	{"source":"module","event":"bootstrap","value":"JAVA_ENTRY"}
+I/FlexibleEsimTransfer(123): bootstrap: FAILED:PAYLOAD	{"source":"module","event":"bootstrap","value":"FAILED:PAYLOAD"}
+I/FlexibleEsimTransfer(123): bootstrap: FAILED:COMPANION	{"source":"module","event":"bootstrap","value":"FAILED:COMPANION"}
+I/FlexibleEsimTransfer(123): bootstrap: FAILED:COMPANION_FD	{"source":"module","event":"bootstrap","value":"FAILED:COMPANION_FD"}
+I/FlexibleEsimTransfer(123): bootstrap: FAILED:DEX_LOADER	{"source":"module","event":"bootstrap","value":"FAILED:DEX_LOADER"}
+I/FlexibleEsimTransfer(123): bootstrap: FAILED:ART_INIT	{"source":"module","event":"bootstrap","value":"FAILED:ART_INIT"}
+I/FlexibleEsimTransfer(123): bootstrap: FAILED:DEX_TRUST	{"source":"module","event":"bootstrap","value":"FAILED:DEX_TRUST"}
+I/FlexibleEsimTransfer(123): bootstrap: FAILED:JAVA_ENTRY	{"source":"module","event":"bootstrap","value":"FAILED:JAVA_ENTRY"}
+I/FlexibleEsimTransfer(123): bootstrap: FAILED:APPLICATION	{"source":"module","event":"bootstrap","value":"FAILED:APPLICATION"}
+I/FlexibleEsimTransfer(123): bootstrap: FAILED:SECRET_EXCEPTION	DROP
+I/FlexibleEsimTransfer(123): bootstrap: FAILED:ART_INIT SECRET_DATA	DROP
+I/OtherApp(123): bootstrap: FAILED:ART_INIT	DROP
+I/FlexibleEsimTransfer(123): inventory_bridge: READY	{"source":"module","event":"inventory_bridge","value":"READY"}
+I/FlexibleEsimTransfer(123): inventory_bridge: UNAVAILABLE	{"source":"module","event":"inventory_bridge","value":"UNAVAILABLE"}
 I/FlexibleEsimTransfer(123): inventory: destination_first	{"source":"module","event":"inventory","value":"destination_first"}
 I/FlexibleEsimTransfer(123): manager: routing:getEid	{"source":"module","event":"manager","value":"routing:getEid"}
 I/FlexibleEsimTransfer(123): card: destination_verified:authenticateServer	{"source":"module","event":"card","value":"destination_verified:authenticateServer"}

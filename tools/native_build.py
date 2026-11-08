@@ -42,10 +42,12 @@ def native_build(args, source, out, abi):
     compiler = toolchain / 'bin' / ('clang++.exe' if os.name == 'nt' else 'clang++')
     lsplant = source / 'vendor/lsplant/lsplant/src/main/jni'
     dex = lsplant / 'external/dex_builder'
+    xz = source / 'vendor/xz-embedded'
     includes = [source / 'include', source / 'native', source / 'vendor/dobby/include', lsplant,
-                lsplant / 'include', dex, dex / 'include', dex / 'external/parallel_hashmap']
+                lsplant / 'include', dex, dex / 'include', dex / 'external/parallel_hashmap', xz]
     flags = ['--target=' + TARGETS[abi] + '33', '--sysroot=' + str(toolchain / 'sysroot'),
-             '-std=c++23', '-O2', '-DNDEBUG', '-fPIC', '-fvisibility=hidden', '-ffunction-sections', '-fdata-sections']
+             '-std=c++23', '-O2', '-DNDEBUG', '-fPIC', '-fvisibility=hidden', '-ffunction-sections', '-fdata-sections',
+             '-DXZ_USE_CRC64', '-DXZ_DEC_DYNALLOC']
     for include in includes: flags.extend(['-I', str(include)])
     modules = module_graph([*lsplant.rglob('*.ixx'), *lsplant.rglob('*.cxx')])
     mappings = []; objects = []
@@ -63,6 +65,9 @@ def native_build(args, source, out, abi):
     for i, path in enumerate(sources):
         obj = out / ('source-' + str(i) + '.o')
         run([compiler, *flags, *mappings, '-c', path, '-o', obj]); objects.append(obj)
+    for path in sorted(xz.glob('*.c')):
+        obj = out / (path.stem + '.o')
+        run([compiler, *flags, '-x', 'c', '-std=c11', '-c', path, '-o', obj]); objects.append(obj)
     dobby = out / 'dobby'
     run([args.cmake, '-S', source / 'vendor/dobby', '-B', dobby, '-G', 'Ninja',
          '-DCMAKE_MAKE_PROGRAM=' + str(args.ninja.resolve()),

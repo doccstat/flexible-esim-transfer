@@ -23,7 +23,10 @@ public final class ZygiskEntry {
             Context context = (Context) chain.getArg(2);
             if (expectedPackage.equals(context.getPackageName())) {
                 try { initialize(context, (ClassLoader) chain.getArg(0)); }
-                catch (Throwable unavailable) { Log.i("FlexibleEsimTransfer", "hooks: INCOMPLETE;new_downloads_blocked_where_guards_loaded"); }
+                catch (Throwable unavailable) {
+                    Log.i("FlexibleEsimTransfer", "bootstrap: FAILED:APPLICATION");
+                    Log.i("FlexibleEsimTransfer", "hooks: INCOMPLETE;new_downloads_blocked_where_guards_loaded");
+                }
             }
             return chain.proceed();
         });
