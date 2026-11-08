@@ -16,13 +16,13 @@ class ZygiskReleaseTests(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.path = Path(directory.name) / release.ZIP_NAME
-        self.tag = '8-0.5.0'
+        self.tag = '9-0.5.1'
         self.files = {name: b'fixture' for name in (
             'customize.sh', 'ctl.sh', 'uninstall.sh', 'webroot/index.html', 'webroot/app.js',
             'webroot/bridge.mjs', 'webroot/style.css', 'webroot/strings.mjs', 'licenses/project.txt', 'licenses/LSPlant.txt',
-            'licenses/Dobby.txt', 'licenses/DexBuilder.txt', 'licenses/parallel-hashmap.txt',
+            'licenses/Dobby.txt', 'licenses/DexBuilder.txt', 'licenses/parallel-hashmap.txt', 'licenses/XZ-Embedded.txt',
             'licenses/libxposed-api.txt', 'licenses/GPL-3.0.txt', 'licenses/VENDORED.md', 'licenses/source.txt')}
-        self.files['module.prop'] = b'id=flexible_esim_transfer\nversionCode=8\nversion=0.5.0\n'
+        self.files['module.prop'] = b'id=flexible_esim_transfer\nversionCode=9\nversion=0.5.1\n'
         self.files['payload.dex'] = b'dex\n039\0' + b'fixture-not-executable'
         self.payload()
         for abi, (bits, machine) in release.ABIS.items():
@@ -35,7 +35,8 @@ class ZygiskReleaseTests(unittest.TestCase):
         stream = io.BytesIO()
         with zipfile.ZipFile(stream, 'w') as archive:
             archive.writestr('classes.dex', self.files['payload.dex'] if dex is None else dex)
-            archive.writestr('version.json', json.dumps(dict(package=release.PACKAGE, code='8', name='0.5.0', tag=tag or self.tag)))
+            code, name = self.tag.split('-', 1)
+            archive.writestr('version.json', json.dumps(dict(package=release.PACKAGE, code=code, name=name, tag=tag or self.tag)))
             archive.writestr('diagnostic-rules.tsv', b'fixture')
             archive.writestr('diagnostic-reader.sh', b'fixture')
         self.files['payload.jar'] = stream.getvalue()
@@ -57,9 +58,19 @@ class ZygiskReleaseTests(unittest.TestCase):
         checksum = self.write()
         self.assertEqual(release.verify_zygisk(self.path, self.tag, checksum), hashlib.sha256(self.path.read_bytes()).hexdigest())
 
+    def test_decoder_license_required_and_old_layout_preserved(self):
+        del self.files['licenses/XZ-Embedded.txt']
+        self.write()
+        with self.assertRaises(ValueError): release.verify_zygisk(self.path, self.tag)
+        self.tag = '8-0.5.0'
+        self.files['module.prop'] = b'id=flexible_esim_transfer\nversionCode=8\nversion=0.5.0\n'
+        self.payload()
+        checksum = self.write()
+        release.verify_zygisk(self.path, self.tag, checksum)
+
     def test_bad_tag_checksum_and_version(self):
         checksum = self.write()
-        for tag in ('0.5.0', '8-0.5.1', '9-0.5.0'):
+        for tag in ('0.5.1', '8-0.5.1', '9-0.5.0'):
             with self.assertRaises(ValueError): release.verify_zygisk(self.path, tag)
         checksum.write_text('0' * 64 + '  ' + release.ZIP_NAME + '\n')
         with self.assertRaises(ValueError): release.verify_zygisk(self.path, self.tag, checksum)

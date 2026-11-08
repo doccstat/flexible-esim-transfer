@@ -49,7 +49,7 @@ The ZIP is independent of APK installation/signing and needs no companion APK.
   safe archive layout, licenses and checksum. A missing artifact/key/pin or failed
   check stops publication. ZIP checksums are not APK-style signatures.
 - The stable tag is **`versionCode-versionName`**; the current source declares
-  **`8-0.5.0`**. A later push with the same declared version replaces that tag's
+  **`9-0.5.1`**. A later push with the same declared version replaces that tag's
   source release and assets. Deliberately bump both values for a new app update.
 - The distribution workflow resolves **GitHub Latest**, downloads those exact
   APK and ZIP assets, rechecks their checksums/identity/version, and creates or replaces
@@ -81,7 +81,7 @@ signed release without exposing passwords:
 
 ```sh
 SIGNING_CERT_SHA256=<certificate-digest> python3 tools/release.py verify \
-  FlexibleEsimTransfer.apk 8-0.5.0 --checksum FlexibleEsimTransfer.apk.sha256
+  FlexibleEsimTransfer.apk 9-0.5.1 --checksum FlexibleEsimTransfer.apk.sha256
 ```
 
 Set `ANDROID_HOME` to the SDK, or `BUILD_TOOLS` to its build-tools directory.
@@ -102,10 +102,10 @@ python3 tools/build_zygisk.py \
   --java "$JAVA_HOME" --api /path/to/api-101.0.0.aar \
   --cmake "$ANDROID_HOME/cmake/3.31.0/bin/cmake" \
   --ninja "$ANDROID_HOME/cmake/3.31.0/bin/ninja" \
-  --out "$HOME/.cache/flexible-esim-transfer/build-0.5.0"
+  --out "$HOME/.cache/flexible-esim-transfer/build-0.5.1"
 python3 tools/release.py verify-zygisk \
-  "$HOME/.cache/flexible-esim-transfer/build-0.5.0/FlexibleEsimTransfer-Zygisk.zip" \
-  8-0.5.0 --checksum "$HOME/.cache/flexible-esim-transfer/build-0.5.0/FlexibleEsimTransfer-Zygisk.zip.sha256"
+  "$HOME/.cache/flexible-esim-transfer/build-0.5.1/FlexibleEsimTransfer-Zygisk.zip" \
+  9-0.5.1 --checksum "$HOME/.cache/flexible-esim-transfer/build-0.5.1/FlexibleEsimTransfer-Zygisk.zip.sha256"
 ```
 
 Windows is supported with the existing SDK/NDK executables (`cmake.exe`,

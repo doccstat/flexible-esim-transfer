@@ -109,6 +109,8 @@ def verify_zygisk(archive, tag, checksum=None):
                     "licenses/project.txt", "licenses/LSPlant.txt", "licenses/Dobby.txt", "licenses/DexBuilder.txt",
                     "licenses/parallel-hashmap.txt", "licenses/libxposed-api.txt", "licenses/GPL-3.0.txt", "licenses/VENDORED.md", "licenses/source.txt",
                     "files.sha256.json"} | {"zygisk/" + abi + ".so" for abi in ABIS}
+        if int(match[1]) >= 9:
+            required.add("licenses/XZ-Embedded.txt")
         if names != required:
             raise ValueError("Missing or unexpected standalone module files")
         manifest = json.loads(module.read("files.sha256.json"))

@@ -1,6 +1,7 @@
 # Shared Android/Python allowlist: source<TAB>event<TAB>field type<TAB>whole-message regex.
 # Only capture groups are exported. Never add a free-text capture group.
 module	hooks	value	hooks: (READY:LPA|READY:GMS|READY:PHONE|INCOMPLETE;new_downloads_blocked_where_guards_loaded)
+module	bootstrap	value	bootstrap: (SELECTED|JAVA_ENTRY|FAILED:(?:PAYLOAD|COMPANION|COMPANION_FD|DEX_LOADER|ART_INIT|DEX_TRUST|JAVA_ENTRY|APPLICATION))
 module	inventory	value	inventory: (destination_first)
 module	inventory_bridge	value	inventory_bridge: (READY|UNAVAILABLE)
 module	inventory_read	value	inventory_read: (READY|EMPTY|FAILED)

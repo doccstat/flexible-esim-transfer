@@ -68,7 +68,11 @@ jobject hook(JNIEnv *env, jclass, jobject target, jobject holder, jobject callba
 jboolean deoptimize(JNIEnv *env, jclass, jobject method) { return lsplant::Deoptimize(env, method); }
 
 bool bootstrap(JNIEnv *env, const std::vector<jbyte> &dex, const std::string &package) {
-    if (env->PushLocalFrame(32) != JNI_OK) return false;
+    if (env->PushLocalFrame(32) != JNI_OK) {
+        __android_log_print(ANDROID_LOG_INFO, tag, "bootstrap: FAILED:DEX_LOADER");
+        return false;
+    }
+    const char *stage = "DEX_LOADER";
     bool result = [&]() {
         auto bytes = env->NewByteArray(dex.size());
         if (!bytes) return false;
@@ -104,6 +108,7 @@ bool bootstrap(JNIEnv *env, const std::vector<jbyte> &dex, const std::string &pa
             {const_cast<char *>("settings"), const_cast<char *>("()Ljava/lang/String;"), reinterpret_cast<void *>(settings)}
         };
         if (env->RegisterNatives(native, methods, 3) != JNI_OK) return false;
+        stage = "ART_INIT";
         fet::ArtSymbols art;
         lsplant::InitInfo info{
             .inline_hooker = [](void *target, void *replace) -> void * { void *original = nullptr; return DobbyHook(target, replace, &original) == 0 ? original : nullptr; },
@@ -112,6 +117,7 @@ bool bootstrap(JNIEnv *env, const std::vector<jbyte> &dex, const std::string &pa
             .art_symbol_prefix_resolver = [&](std::string_view symbol) { return art.find(symbol, true); }
         };
         if (!lsplant::Init(env, info)) return false;
+        stage = "DEX_TRUST";
         // Trust only this payload's dex cookies, not the application's hidden-API policy.
         auto base_loader = env->FindClass("dalvik/system/BaseDexClassLoader");
         if (!base_loader) return false;
@@ -141,6 +147,7 @@ bool bootstrap(JNIEnv *env, const std::vector<jbyte> &dex, const std::string &pa
             auto cookie = env->GetObjectField(file, cookie_field);
             if (!cookie || env->ExceptionCheck() || !lsplant::MakeDexFileTrusted(env, cookie)) return false;
         }
+        stage = "JAVA_ENTRY";
         auto entry = load_class("com.lixingchi.flexibleesimtransfer.ZygiskEntry");
         if (!entry || env->ExceptionCheck()) return false;
         auto start = env->GetStaticMethodID(entry, "start", "(Ljava/lang/String;)V");
@@ -150,12 +157,15 @@ bool bootstrap(JNIEnv *env, const std::vector<jbyte> &dex, const std::string &pa
     }();
     if (env->ExceptionCheck()) env->ExceptionClear();
     env->PopLocalFrame(nullptr);
+    if (result) __android_log_print(ANDROID_LOG_INFO, tag, "bootstrap: JAVA_ENTRY");
+    else __android_log_print(ANDROID_LOG_INFO, tag, "bootstrap: FAILED:%s", stage);
     return result;
 }
 class Module : public zygisk::ModuleBase {
     zygisk::Api *api = nullptr;
     JNIEnv *env = nullptr;
     std::string package;
+    const char *failure = nullptr;
     std::vector<jbyte> dex;
 public:
     void onLoad(zygisk::Api *a, JNIEnv *e) override { api = a; env = e; }
@@ -185,9 +195,11 @@ public:
         }
         if (fd >= 0) close(fd);
         settings_fd = api->connectCompanion();
-        if (dex.empty() || settings_fd < 0 || !api->exemptFd(settings_fd)) {
+        failure = dex.empty() ? "PAYLOAD" : settings_fd < 0 ? "COMPANION"
+                : !api->exemptFd(settings_fd) ? "COMPANION_FD" : nullptr;
+        if (failure) {
             if (settings_fd >= 0) close(settings_fd);
-            settings_fd = -1; package.clear(); dex.clear();
+            settings_fd = -1; dex.clear();
             api->setOption(zygisk::DLCLOSE_MODULE_LIBRARY);
         } else {
             timeval timeout{2, 0};
@@ -197,6 +209,12 @@ public:
     }
     void postAppSpecialize(const zygisk::AppSpecializeArgs *) override {
         if (package.empty()) return;
+        // Emit after UID specialization so the opt-in app-UID recorder can retain startup failures.
+        __android_log_print(ANDROID_LOG_INFO, tag, "bootstrap: SELECTED");
+        if (failure) {
+            __android_log_print(ANDROID_LOG_INFO, tag, "bootstrap: FAILED:%s", failure);
+            return;
+        }
         bool ok = bootstrap(env, dex, package);
         dex.clear(); dex.shrink_to_fit();
         if (!ok) __android_log_print(ANDROID_LOG_INFO, tag, "hooks: INCOMPLETE;new_downloads_blocked_where_guards_loaded");

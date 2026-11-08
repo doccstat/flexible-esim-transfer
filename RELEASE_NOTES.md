@@ -1,4 +1,9 @@
-# Flexible eSIM Transfer 0.5.0
+# Flexible eSIM Transfer 0.5.1
+
+Fix standalone startup on ART libraries with compressed MiniDebugInfo. Required
+private symbols are now resolved from bounded, validated `.gnu_debugdata` as well
+as ordinary ELF symbol tables. Adds redacted bootstrap-stage and inventory-socket
+readiness markers; no destination, profile, scope or restart changes.
 
 Two independent alternatives, included together in every release:
 
@@ -6,7 +11,7 @@ Two independent alternatives, included together in every release:
   settings, card picker and private diagnostic recorder.
 - **`FlexibleEsimTransfer-Zygisk.zip`** — standalone KernelSU WebUI and native
   Zygisk/LSPlant backend. No Flexible eSIM Transfer APK or Vector required.
-- Both use versionCode **8**, version **0.5.0**, and have individual SHA-256 files.
+- Both use versionCode **9**, version **0.5.1**, and have individual SHA-256 files.
 - Concise setup documentation and visible eSIM-loss warnings in both interfaces.
   Test a recoverable line first; recovery and use are your responsibility under
   the existing MIT warranty/liability terms.
