@@ -61,6 +61,13 @@ class ZygiskTests(unittest.TestCase):
         self.assertLess(post.index('if (failure)'), post.index('bool ok = bootstrap('))
         self.assertIn('bootstrap: FAILED:%s', post)
 
+    def test_bootstrap_hooks_attachment_not_its_deoptimized_caller(self):
+        source = (ROOT / 'zygisk/java/com/lixingchi/flexibleesimtransfer/ZygiskEntry.java').read_text()
+        self.assertIn('NativeHooks.install(Application.class.getDeclaredMethod("attach", Context.class)', source)
+        self.assertNotIn('NativeHooks.install(Instrumentation.class', source)
+        self.assertIn('caller.getName().equals("newApplication") && !NativeHooks.deoptimize(caller)', source)
+        self.assertIn('caller.getName().startsWith("makeApplication") && !NativeHooks.deoptimize(caller)', source)
+
     def test_frontend_is_local_and_has_no_apk_requirement(self):
         html = (ROOT / 'zygisk/module/webroot/index.html').read_text()
         self.assertIn("connect-src 'none'", html)

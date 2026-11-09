@@ -7,6 +7,9 @@ public class Context {
     public int receiverFlags, registrations;
     public boolean senderAuthorized = true, rejectRegistration, rejectSend, holdResult;
     public String hostPackage = "com.google.android.euicc";
+    public String getPackageName() { return hostPackage; }
+    public ClassLoader getClassLoader() { return getClass().getClassLoader(); }
+    public android.content.pm.ApplicationInfo getApplicationInfo() { return new android.content.pm.ApplicationInfo(); }
     public Intent lastIntent;
     public Runnable deliverResult;
     public android.telephony.TelephonyManager telephony;

@@ -1,5 +1,6 @@
 package com.lixingchi.flexibleesimtransfer;
 
+import android.app.Application;
 import android.app.Instrumentation;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -18,22 +19,45 @@ public final class ZygiskEntry {
 
     public static void start(String expectedPackage) throws Exception {
         BackendGuard.enter("zygisk");
-        NativeHooks.install(Instrumentation.class.getDeclaredMethod("newApplication", ClassLoader.class,
-                String.class, Context.class), chain -> {
-            Context context = (Context) chain.getArg(2);
-            if (expectedPackage.equals(context.getPackageName())) {
-                try { initialize(context, (ClassLoader) chain.getArg(0)); }
-                catch (Throwable unavailable) {
-                    Log.i("FlexibleEsimTransfer", "bootstrap: FAILED:APPLICATION");
-                    Log.i("FlexibleEsimTransfer", "hooks: INCOMPLETE;new_downloads_blocked_where_guards_loaded");
-                }
-            }
-            return chain.proceed();
-        });
+        // Other hook engines deoptimize newApplication; do not hook that caller itself.
+        hooks.add(NativeHooks.install(Application.class.getDeclaredMethod("attach", Context.class),
+                applicationHook(expectedPackage, context -> initialize(context, context.getClassLoader()), context -> {
+                    if (expectedPackage.equals("com.android.phone")) InventorySocket.start(router::inventory);
+                })));
+        for (Method caller : Instrumentation.class.getDeclaredMethods()) {
+            if (caller.getName().equals("newApplication") && !NativeHooks.deoptimize(caller))
+                throw new IllegalStateException("Application bootstrap unavailable");
+        }
         for (Method caller : Class.forName("android.app.LoadedApk").getDeclaredMethods()) {
             if (caller.getName().startsWith("makeApplication") && !NativeHooks.deoptimize(caller))
                 throw new IllegalStateException("Application bootstrap unavailable");
         }
+    }
+
+    @FunctionalInterface interface Initializer { void run(Context context) throws Exception; }
+
+    static XposedInterface.Hooker applicationHook(String expectedPackage, Initializer initialize,
+            java.util.function.Consumer<Context> attached) {
+        return chain -> {
+            Context context = (Context) chain.getArg(0);
+            boolean initialized = false;
+            if (expectedPackage.equals(context.getPackageName())) {
+                try { initialize.run(context); initialized = true; }
+                catch (Throwable unavailable) { applicationFailure(); }
+            }
+            // Native attachment errors propagate unchanged; never publish inventory after a failed attach.
+            Object result = chain.proceed();
+            if (initialized) {
+                try { attached.accept(context); }
+                catch (Throwable unavailable) { applicationFailure(); }
+            }
+            return result;
+        };
+    }
+
+    private static void applicationFailure() {
+        Log.i("FlexibleEsimTransfer", "bootstrap: FAILED:APPLICATION");
+        Log.i("FlexibleEsimTransfer", "hooks: INCOMPLETE;new_downloads_blocked_where_guards_loaded");
     }
 
     private static synchronized void initialize(Context context, ClassLoader loader) throws Exception {
@@ -60,9 +84,7 @@ public final class ZygiskEntry {
             default -> throw new UnsupportedOperationException();
         });
         router = new TransferRouter();
-        router.standalone(ctx -> {
-            if (ctx.getPackageName().equals("com.android.phone")) InventorySocket.start(router::inventory);
-        });
+        router.standalone(context);
         // This is the standalone framework adapter, not an Xposed module attaching itself.
         for (Method attach : XposedInterfaceWrapper.class.getDeclaredMethods()) {
             if (!attach.getName().equals("attachFramework")) continue;

@@ -37,6 +37,11 @@ socket; a successful Refresh must still read the real cards. These fixed labels
 are included in private diagnostics when recording is explicitly started before
 the device's supported activation procedure. No diagnostic action restarts it.
 
+The standalone bootstrap owns one `Application.attach` hook and supplies that
+context directly to the router. It deoptimizes application-construction callers,
+not an already-hooked `newApplication` target. Inventory starts only after native
+attachment succeeds; another framework may remain enabled for unrelated modules.
+
 `settings_channel: READY` means the standalone native reader received a bounded
 settings response; `UNAVAILABLE` means it could not. The companion supplies a
 private socket before specialization instead of reusing the zygote-labelled
