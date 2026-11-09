@@ -1,4 +1,14 @@
+#include <cerrno>
+#include <sys/socket.h>
+
+bool deny_socket_options = false;
+int checked_setsockopt(int fd, int level, int option, const void *value, socklen_t length) {
+    if (deny_socket_options) { errno = EACCES; return -1; }
+    return setsockopt(fd, level, option, value, length);
+}
+#define setsockopt checked_setsockopt
 #include "settings_channel.hpp"
+#undef setsockopt
 #include <cassert>
 #include <dirent.h>
 #include <thread>
@@ -52,9 +62,16 @@ int main() {
     }
     close(transport[1]);
     assert(fet::channel_timeout(transport[0]));
+    deny_socket_options = true; // The client may read root-owned sockets, not configure them.
     int fd = fet::receive_channel(transport[0]);
+    deny_socket_options = false;
     assert(fd >= 0 && fd != transport[0]);
     assert(fcntl(fd, F_GETFD) & FD_CLOEXEC);
+    for (int option : {SO_RCVTIMEO, SO_SNDTIMEO}) {
+        timeval timeout{}; socklen_t size = sizeof(timeout);
+        assert(getsockopt(fd, SOL_SOCKET, option, &timeout, &size) == 0);
+        assert(timeout.tv_sec == 2 && timeout.tv_usec == 0);
+    }
     ucred peer{}; socklen_t peer_size = sizeof(peer);
     assert(getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &peer, &peer_size) == 0 && peer.pid == child);
     close(transport[0]); // The provider's zygote-labelled connection is never used for settings.

@@ -1,8 +1,9 @@
-# Flexible eSIM Transfer 0.5.2
+# Flexible eSIM Transfer 0.5.3
 
 Fix standalone settings access after Android process specialization. The root
-companion now passes a private socket instead of retaining the zygote-labelled
-connection, without changing SELinux policy. Failed settings reads no longer
+companion configures the timeouts and passes a private socket instead of retaining
+the zygote-labelled connection. The receiver needs no socket-option mutation
+permission, and SELinux policy is unchanged. Failed settings reads no longer
 crash SIM Manager's card inventory; real inventory and native permission errors
 are preserved, while final download guards still fail closed. Redacted
 `settings_channel` events report reader readiness or failure. Settings, profiles,
@@ -14,7 +15,7 @@ Two independent alternatives, included together in every release:
   settings, card picker and private diagnostic recorder.
 - **`FlexibleEsimTransfer-Zygisk.zip`** — standalone KernelSU WebUI and native
   Zygisk/LSPlant backend. No Flexible eSIM Transfer APK or Vector required.
-- Both use versionCode **10**, version **0.5.2**, and have individual SHA-256 files.
+- Both use versionCode **11**, version **0.5.3**, and have individual SHA-256 files.
 - Concise setup documentation and visible eSIM-loss warnings in both interfaces.
   Test a recoverable line first; recovery and use are your responsibility under
   the existing MIT warranty/liability terms.

@@ -73,7 +73,7 @@ inline int receive_channel(int transport) {
     sockaddr_storage address{}; socklen_t address_length = sizeof(address);
     valid = valid && channel >= 0 && getsockopt(channel, SOL_SOCKET, SO_TYPE, &type, &length) == 0
             && type == SOCK_STREAM && getsockname(channel, reinterpret_cast<sockaddr *>(&address), &address_length) == 0
-            && address.ss_family == AF_UNIX && channel_timeout(channel);
+            && address.ss_family == AF_UNIX;
     if (!valid) { if (channel >= 0) close(channel); return -1; }
     return channel;
 }
@@ -95,7 +95,8 @@ template <class ReadConfig> void serve_settings(int transport, ReadConfig read) 
     // The Zygisk socket belongs to zygote; use a companion-created pair after specialization.
     int pair[2];
     if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, pair) != 0) return;
-    bool sent = send_channel(transport, pair[0]);
+    // Only the companion may configure its socket; SCM_RIGHTS preserves these timeouts.
+    bool sent = channel_timeout(pair[0]) && send_channel(transport, pair[0]);
     close(pair[0]);
     if (sent) {
         for (char command; transfer(pair[1], &command, 1, false) && command == 'R';) {
