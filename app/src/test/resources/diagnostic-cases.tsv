@@ -23,6 +23,11 @@ I/FlexibleEsimTransfer(123): bootstrap: FAILED:APPLICATION	{"source":"module","e
 I/FlexibleEsimTransfer(123): bootstrap: FAILED:SECRET_EXCEPTION	DROP
 I/FlexibleEsimTransfer(123): bootstrap: FAILED:ART_INIT SECRET_DATA	DROP
 I/OtherApp(123): bootstrap: FAILED:ART_INIT	DROP
+I/FlexibleEsimTransfer(123): settings_channel: READY	{"source":"module","event":"settings_channel","value":"READY"}
+I/FlexibleEsimTransfer(123): settings_channel: UNAVAILABLE	{"source":"module","event":"settings_channel","value":"UNAVAILABLE"}
+I/FlexibleEsimTransfer(123): settings_channel: READY SECRET	DROP
+I/FlexibleEsimTransfer(123): settings_channel: SECRET	DROP
+I/OtherApp(123): settings_channel: READY	DROP
 I/FlexibleEsimTransfer(123): inventory_bridge: READY	{"source":"module","event":"inventory_bridge","value":"READY"}
 I/FlexibleEsimTransfer(123): inventory_bridge: UNAVAILABLE	{"source":"module","event":"inventory_bridge","value":"UNAVAILABLE"}
 I/FlexibleEsimTransfer(123): inventory: destination_first	{"source":"module","event":"inventory","value":"destination_first"}

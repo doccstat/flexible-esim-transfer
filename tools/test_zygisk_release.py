@@ -16,13 +16,13 @@ class ZygiskReleaseTests(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.path = Path(directory.name) / release.ZIP_NAME
-        self.tag = '9-0.5.1'
+        self.tag = '10-0.5.2'
         self.files = {name: b'fixture' for name in (
             'customize.sh', 'ctl.sh', 'uninstall.sh', 'webroot/index.html', 'webroot/app.js',
             'webroot/bridge.mjs', 'webroot/style.css', 'webroot/strings.mjs', 'licenses/project.txt', 'licenses/LSPlant.txt',
             'licenses/Dobby.txt', 'licenses/DexBuilder.txt', 'licenses/parallel-hashmap.txt', 'licenses/XZ-Embedded.txt',
             'licenses/libxposed-api.txt', 'licenses/GPL-3.0.txt', 'licenses/VENDORED.md', 'licenses/source.txt')}
-        self.files['module.prop'] = b'id=flexible_esim_transfer\nversionCode=9\nversion=0.5.1\n'
+        self.files['module.prop'] = b'id=flexible_esim_transfer\nversionCode=10\nversion=0.5.2\n'
         self.files['payload.dex'] = b'dex\n039\0' + b'fixture-not-executable'
         self.payload()
         for abi, (bits, machine) in release.ABIS.items():
@@ -70,7 +70,7 @@ class ZygiskReleaseTests(unittest.TestCase):
 
     def test_bad_tag_checksum_and_version(self):
         checksum = self.write()
-        for tag in ('0.5.1', '8-0.5.1', '9-0.5.0'):
+        for tag in ('0.5.2', '9-0.5.2', '10-0.5.1'):
             with self.assertRaises(ValueError): release.verify_zygisk(self.path, tag)
         checksum.write_text('0' * 64 + '  ' + release.ZIP_NAME + '\n')
         with self.assertRaises(ValueError): release.verify_zygisk(self.path, self.tag, checksum)

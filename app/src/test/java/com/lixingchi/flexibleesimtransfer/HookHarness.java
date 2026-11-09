@@ -12,6 +12,7 @@ public final class HookHarness {
     public static final List<String> logs = new ArrayList<>();
     public static final Map<String, Object> preferences = new HashMap<>();
     public static String rejectHook, rejectDeoptimization;
+    public static RuntimeException preferencesFailure;
     public static final Set<Executable> deoptimized = new HashSet<>();
 
     @SuppressWarnings("unchecked")
@@ -36,12 +37,15 @@ public final class HookHarness {
     @SuppressWarnings("unchecked") private static <T, E extends Throwable> T rethrow(Throwable e) throws E { throw (E) e; }
 
     public static TransferRouter load(String packageName, int uid) throws Exception {
-        hooks.clear(); logs.clear(); deoptimized.clear();
+        hooks.clear(); logs.clear(); deoptimized.clear(); preferencesFailure = null;
         System.clearProperty("com.lixingchi.flexibleesimtransfer.backend");
         TransferRouter module = new TransferRouter();
         SharedPreferences prefs = (SharedPreferences) Proxy.newProxyInstance(HookHarness.class.getClassLoader(),
                 new Class<?>[]{SharedPreferences.class}, (o, m, a) -> {
-                    if (m.getName().equals("getAll")) return new HashMap<>(preferences);
+                    if (m.getName().equals("getAll")) {
+                        if (preferencesFailure != null) throw preferencesFailure;
+                        return new HashMap<>(preferences);
+                    }
                     throw new UnsupportedOperationException(m.getName());
                 });
         XposedInterface framework = (XposedInterface) Proxy.newProxyInstance(HookHarness.class.getClassLoader(),
