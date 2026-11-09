@@ -119,8 +119,15 @@ public final class TransferRouter extends XposedModule {
             @SuppressWarnings("unchecked") List<UiccCardInfo> cards = (List<UiccCardInfo>) chain.proceed();
             if (inventoryRead.get()) return cards;
             telephony = (TelephonyManager) chain.getThisObject();
-            if (!enabled()) return cards;
-            Selection.Target target = resolve(cards);
+            Selection.Target target;
+            try {
+                if (!enabled()) return cards;
+                target = resolve(cards);
+            } catch (Selection.Blocked blocked) {
+                // Inventory is descriptive; final operation guards still reject unavailable routing.
+                emit("blocked", reason(blocked));
+                return cards;
+            }
             List<UiccCardInfo> ordered = new ArrayList<>(cards);
             // Preserve every real card and its identity, including explicit source-card lookups.
             ordered.sort((a, b) -> Boolean.compare(b != null && b.getCardId() == target.cardId(),
@@ -327,11 +334,18 @@ public final class TransferRouter extends XposedModule {
     private boolean routingConfigured() {
         BackendGuard.check();
         if (prefs == null) throw new Selection.Blocked("SETTINGS_UNAVAILABLE");
-        Map<String, ?> values = prefs.getAll();
-        Object selected = values.get(Selection.KEY);
-        Object port = values.get(Selection.PORT);
-        return session.enabled(selected == null ? "" : (String) selected, port == null ? "" : (String) port,
-                preserveCardSession(values));
+        String selected, port;
+        boolean preserve;
+        try {
+            Map<String, ?> values = prefs.getAll();
+            selected = (String) values.get(Selection.KEY);
+            port = (String) values.get(Selection.PORT);
+            preserve = preserveCardSession(values);
+        } catch (RuntimeException unavailable) {
+            session.unavailable();
+            throw new Selection.Blocked("SETTINGS_UNAVAILABLE");
+        }
+        return session.enabled(selected == null ? "" : selected, port == null ? "" : port, preserve);
     }
 
     private Selection.Target target() {

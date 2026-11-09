@@ -45,6 +45,14 @@ EuiccSession: startSession: PRIVATE_SESSION
         raw += '\nFlexibleEsimTransfer: bootstrap: FAILED:ART_INIT SECRET_DATA'
         self.assertEqual(diagnostics.events(raw), [{'event': 'bootstrap', 'value': label} for label in labels])
 
+    def test_settings_channel_exports_status_not_settings_or_errors(self):
+        raw = '\n'.join('FlexibleEsimTransfer: settings_channel: ' + value
+                        for value in ('READY', 'UNAVAILABLE', 'READY SECRET', 'SECRET', ''))
+        self.assertEqual(diagnostics.events(raw), [
+            {'event': 'settings_channel', 'value': 'READY'},
+            {'event': 'settings_channel', 'value': 'UNAVAILABLE'},
+        ])
+
     def test_missing_or_truncated_logs_do_not_invent_success(self):
         self.assertEqual(diagnostics.events("permission denied"), [])
         self.assertEqual(diagnostics.events("FlexibleEsimTransfer: hooks: REA"), [])

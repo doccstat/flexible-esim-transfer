@@ -162,6 +162,82 @@ public class TransferRouterTest {
         assertEquals(4, EuiccManager.downloadedCard);
         assertEquals(0, new EuiccServiceImpl().onDownloadSubscription(0, 0, null, false, false, null).result);
     }
+    @Test public void settingsFailureKeepsRealInventoryAndBlocksOperations() throws Exception {
+        for (boolean routing : List.of(false, true)) {
+            for (RuntimeException failure : List.of(new Selection.Blocked("SETTINGS_UNAVAILABLE"),
+                    new IllegalStateException("private transport error"))) {
+                HookHarness.preferences.put(Selection.KEY, routing ? HASH : "");
+                load("com.google.android.euicc");
+                HookHarness.preferencesFailure = failure;
+                assertSame(tm.cards, tm.getUiccCardsInfo());
+                assertSlotsUnavailable(slots());
+                EuiccServiceImpl service = new EuiccServiceImpl();
+                for (int slot : List.of(0, 1)) {
+                    assertEquals(1, service.onDownloadSubscription(slot, 0, null, false, false, null).result);
+                    assertEquals(1, service.onGetDownloadableSubscriptionMetadata(slot, null, false).result);
+                }
+                assertEquals(0, service.calls);
+                PendingIntent callback = new PendingIntent();
+                new EuiccManager(4).downloadSubscription(null, false, callback);
+                assertEquals(2, callback.result);
+                assertEquals(-1, EuiccManager.downloadedCard);
+                EuiccCardManager card = new EuiccCardManager();
+                AtomicInteger calls = new AtomicInteger();
+                card.requestEuiccChallenge(EID, Runnable::run, (code, value) -> {
+                    assertEquals(-1, code); assertNull(value); calls.incrementAndGet();
+                });
+                assertEquals(1, calls.get());
+                assertEquals(0, card.calls);
+                assertTrue(HookHarness.logs.toString().contains("blocked: SETTINGS_UNAVAILABLE"));
+                assertFalse(HookHarness.logs.toString().contains("private transport error"));
+            }
+        }
+    }
+    @Test public void inventoryBlocksDoNotEraseCardsOrUnlatchChangedSettings() throws Exception {
+        load("com.google.android.euicc");
+        assertSame(removable, tm.getUiccCardsInfo().get(0));
+        HookHarness.preferences.put(Selection.KEY, Selection.fingerprint(SOURCE_EID));
+        assertSame(tm.cards, tm.getUiccCardsInfo());
+        HookHarness.preferences.put(Selection.KEY, HASH);
+        assertSame(tm.cards, tm.getUiccCardsInfo());
+        assertEquals(1, new EuiccServiceImpl().onDownloadSubscription(1, 0, null, false, false, null).result);
+        load("com.google.android.euicc");
+        BackendGuard.enter("zygisk");
+        assertSame(tm.cards, tm.getUiccCardsInfo());
+        assertEquals(1, new EuiccServiceImpl().onDownloadSubscription(1, 0, null, false, false, null).result);
+    }
+    @Test public void malformedPreferenceTypesDoNotCrashInventory() throws Exception {
+        for (String key : List.of(Selection.KEY, Selection.PORT, Selection.PRESERVE_SESSION)) {
+            load("com.google.android.euicc");
+            Object previous = HookHarness.preferences.put(key, 123);
+            assertSame(tm.cards, tm.getUiccCardsInfo());
+            assertTrue(HookHarness.logs.toString().contains("blocked: SETTINGS_UNAVAILABLE"));
+            assertEquals(1, new EuiccServiceImpl().onDownloadSubscription(1, 0, null, false, false, null).result);
+            if (previous == null) HookHarness.preferences.remove(key);
+            else HookHarness.preferences.put(key, previous);
+        }
+    }
+    @Test public void inventoryNativeExceptionsAreNeitherCaughtNorRetried() throws Exception {
+        load("com.google.android.euicc");
+        RuntimeException failure = new SecurityException("native permission denial");
+        tm.failure = failure;
+        HookHarness.preferencesFailure = new Selection.Blocked("SETTINGS_UNAVAILABLE");
+        assertSame(failure, assertThrows(SecurityException.class, tm::getUiccCardsInfo));
+        assertEquals(1, tm.calls);
+        assertFalse(HookHarness.logs.toString().contains("blocked:"));
+    }
+    @Test public void lostSettingsDoNotResumeAPinnedOperationAfterRecovery() throws Exception {
+        load("com.google.android.euicc");
+        assertSame(removable, tm.getUiccCardsInfo().get(0));
+        HookHarness.preferencesFailure = new Selection.Blocked("SETTINGS_UNAVAILABLE");
+        assertSame(tm.cards, tm.getUiccCardsInfo());
+        HookHarness.preferencesFailure = null;
+        assertSame(tm.cards, tm.getUiccCardsInfo());
+        EuiccServiceImpl service = new EuiccServiceImpl();
+        assertEquals(1, service.onDownloadSubscription(1, 0, null, false, false, null).result);
+        assertEquals(0, service.calls);
+        assertTrue(HookHarness.logs.toString().contains("blocked: RESTART_REQUIRED"));
+    }
     @Test public void originalExceptionsAreNotRetriedOrReportedAsSuccess() throws Exception {
         load("com.google.android.euicc");
         IllegalStateException failure = new IllegalStateException("stock failure");

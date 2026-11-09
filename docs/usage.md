@@ -37,6 +37,14 @@ socket; a successful Refresh must still read the real cards. These fixed labels
 are included in private diagnostics when recording is explicitly started before
 the device's supported activation procedure. No diagnostic action restarts it.
 
+`settings_channel: READY` means the standalone native reader received a bounded
+settings response; `UNAVAILABLE` means it could not. The companion supplies a
+private socket before specialization instead of reusing the zygote-labelled
+connection in app processes. No SELinux policy changes or public socket are used.
+When settings or routing are unavailable, inventory keeps the unmodified native
+card list and logs the block reason; this does **not** unblock downloads or other
+protected operations. Native inventory permission errors still propagate.
+
 ## Destination and session settings
 
 Routing and session preservation default off on a fresh installation. Discovery

@@ -1,5 +1,6 @@
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,6 +16,15 @@ class ZygiskTests(unittest.TestCase):
             subprocess.run(['g++', '-std=c++20', '-Wall', '-Wextra', '-Werror',
                             '-I' + str(ROOT / 'zygisk/native'), str(ROOT / 'zygisk/tests/policy.cpp'), '-o', str(binary)], check=True)
             subprocess.run([str(binary)], check=True)
+
+    @unittest.skipUnless(sys.platform.startswith('linux') and shutil.which('g++'), 'Linux C++ tools unavailable')
+    def test_settings_channel(self):
+        with tempfile.TemporaryDirectory() as temp:
+            binary = Path(temp) / 'settings_channel'
+            subprocess.run(['g++', '-std=c++20', '-Wall', '-Wextra', '-Werror', '-pthread',
+                            '-I' + str(ROOT / 'zygisk/native'), str(ROOT / 'zygisk/tests/settings_channel.cpp'),
+                            '-o', str(binary)], check=True, timeout=30)
+            subprocess.run([str(binary)], check=True, timeout=10)
 
     @unittest.skipUnless(shutil.which('node'), 'Node unavailable')
     def test_webui(self):

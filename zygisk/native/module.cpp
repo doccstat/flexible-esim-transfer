@@ -1,9 +1,6 @@
 #include <string>
 #include <vector>
 #include <mutex>
-#include <array>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <android/log.h>
@@ -12,6 +9,7 @@
 #include "dobby.h"
 #include "policy.hpp"
 #include "art_symbols.hpp"
+#include "settings_channel.hpp"
 
 namespace {
 int settings_fd = -1;
@@ -19,48 +17,20 @@ std::mutex settings_mutex;
 constexpr const char *config_path = "/data/adb/flexible-esim-transfer/config";
 constexpr const char *tag = "FlexibleEsimTransfer";
 
-bool transfer(int fd, void *bytes, size_t length, bool write) {
-    auto p = static_cast<char *>(bytes);
-    while (length) {
-        ssize_t count = write ? send(fd, p, length, MSG_NOSIGNAL) : recv(fd, p, length, 0);
-        if (count < 0 && errno == EINTR) continue;
-        if (count <= 0) return false;
-        p += count; length -= count;
-    }
-    return true;
-}
-std::string read_config() {
-    int fd = open(config_path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
-    if (fd < 0) return {};
-    struct stat st{};
-    std::array<char, 129> bytes{};
-    ssize_t n = -1;
-    if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode) && st.st_uid == 0 && (st.st_mode & 077) == 0)
-        n = read(fd, bytes.data(), bytes.size());
-    close(fd);
-    return n > 0 && n <= 128 ? std::string(bytes.data(), n) : std::string{};
-}
 void companion(int fd) {
-    // An inherited, read-only connection: no command may mutate state or address arbitrary files.
-    for (char command; transfer(fd, &command, 1, false) && command == 'R';) {
-        std::string text = read_config();
-        uint8_t length = text.size();
-        if (!transfer(fd, &length, 1, true) || !transfer(fd, text.data(), text.size(), true)) break;
-    }
+    // The inherited private channel serves only one fixed root-owned file; no write commands.
+    fet::serve_settings(fd, [] { return fet::read_config(config_path); });
 }
 jstring settings(JNIEnv *env, jclass) {
     std::lock_guard lock(settings_mutex);
-    char command = 'R'; uint8_t length = 0;
-    std::array<char, 129> bytes{};
-    if (settings_fd < 0 || !transfer(settings_fd, &command, 1, true)
-            || !transfer(settings_fd, &length, 1, false) || !length || length > 128
-            || !transfer(settings_fd, bytes.data(), length, false)) {
-        if (settings_fd >= 0) close(settings_fd);
-        settings_fd = -1; // A partial response cannot become a later, stale settings snapshot.
-        return nullptr;
+    auto text = fet::read_settings(settings_fd);
+    static int previous = -1;
+    int state = text ? 1 : 0;
+    if (state != previous) {
+        __android_log_print(ANDROID_LOG_INFO, tag, "settings_channel: %s", text ? "READY" : "UNAVAILABLE");
+        previous = state;
     }
-    for (size_t i = 0; i < length; i++) if (bytes[i] != '\n' && (bytes[i] < '0' || bytes[i] > 'z')) return nullptr;
-    return env->NewStringUTF(bytes.data());
+    return text ? env->NewStringUTF(text->c_str()) : nullptr;
 }
 jobject hook(JNIEnv *env, jclass, jobject target, jobject holder, jobject callback) {
     return lsplant::Hook(env, target, holder, callback);
@@ -194,17 +164,17 @@ public:
             }
         }
         if (fd >= 0) close(fd);
-        settings_fd = api->connectCompanion();
+        int transport = dex.empty() ? -1 : api->connectCompanion();
+        if (transport >= 0) {
+            if (fet::channel_timeout(transport)) settings_fd = fet::receive_channel(transport);
+            close(transport);
+        }
         failure = dex.empty() ? "PAYLOAD" : settings_fd < 0 ? "COMPANION"
                 : !api->exemptFd(settings_fd) ? "COMPANION_FD" : nullptr;
         if (failure) {
             if (settings_fd >= 0) close(settings_fd);
             settings_fd = -1; dex.clear();
             api->setOption(zygisk::DLCLOSE_MODULE_LIBRARY);
-        } else {
-            timeval timeout{2, 0};
-            setsockopt(settings_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-            setsockopt(settings_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
         }
     }
     void postAppSpecialize(const zygisk::AppSpecializeArgs *) override {
