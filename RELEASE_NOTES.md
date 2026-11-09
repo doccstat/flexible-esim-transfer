@@ -1,13 +1,13 @@
-# Flexible eSIM Transfer 0.5.3
+# Flexible eSIM Transfer 0.5.4
 
-Fix standalone settings access after Android process specialization. The root
-companion configures the timeouts and passes a private socket instead of retaining
-the zygote-labelled connection. The receiver needs no socket-option mutation
-permission, and SELinux policy is unchanged. Failed settings reads no longer
-crash SIM Manager's card inventory; real inventory and native permission errors
-are preserved, while final download guards still fail closed. Redacted
-`settings_channel` events report reader readiness or failure. Settings, profiles,
-scopes and restart behavior are unchanged.
+Fix standalone application startup when another hook engine deoptimizes
+`Instrumentation.newApplication`. Bootstrap now hooks `Application.attach` once,
+passes the real context directly to the shared router, and starts Phone inventory
+only after native attachment succeeds. Application-construction callers are
+deoptimized to prevent inlining from bypassing attachment. Native exceptions
+remain unchanged. The companion-owned settings transport and fail-closed guards
+from 0.5.3 are retained. Settings, profiles, scopes and restart behavior are
+unchanged.
 
 Two independent alternatives, included together in every release:
 
@@ -15,7 +15,7 @@ Two independent alternatives, included together in every release:
   settings, card picker and private diagnostic recorder.
 - **`FlexibleEsimTransfer-Zygisk.zip`** — standalone KernelSU WebUI and native
   Zygisk/LSPlant backend. No Flexible eSIM Transfer APK or Vector required.
-- Both use versionCode **11**, version **0.5.3**, and have individual SHA-256 files.
+- Both use versionCode **12**, version **0.5.4**, and have individual SHA-256 files.
 - Concise setup documentation and visible eSIM-loss warnings in both interfaces.
   Test a recoverable line first; recovery and use are your responsibility under
   the existing MIT warranty/liability terms.
@@ -36,8 +36,8 @@ active eUICC. The APK needs a libxposed API 101 framework. The ZIP needs KernelS
 Manager and a Zygisk API 5 provider. ZIP settings/diagnostics are root-only;
 uninstall retains them. Export/delete/forget are explicit choices.
 
-The standalone route has host/build checks, **not yet live ART, carrier-transfer
-or integrity validation**. Play Integrity interference remains unresolved; no
-DEVICE/STRONG result is promised. Native authorization, signed data, card errors
+The startup correction has host/build checks; **device activation, inventory,
+carrier-transfer and integrity validation remain pending**. Play Integrity
+interference remains unresolved; no DEVICE/STRONG result is promised. Native authorization, signed data, card errors
 and carrier eligibility are not bypassed. Activation requires the device’s
 supported restart procedure; preserve temporary root where applicable.

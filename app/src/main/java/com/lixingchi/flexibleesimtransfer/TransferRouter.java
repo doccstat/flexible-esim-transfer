@@ -49,9 +49,8 @@ public final class TransferRouter extends XposedModule {
     private volatile boolean ready;
     private boolean inventoryRegistered, phoneAttempted;
     private String backend = "vector";
-    private java.util.function.Consumer<Context> attached;
 
-    void standalone(java.util.function.Consumer<Context> listener) { backend = "zygisk"; attached = listener; }
+    void standalone(Context context) { backend = "zygisk"; this.context = context; }
 
     List<CardInventory.Card> inventory() {
         boolean previous = inventoryRead.get();
@@ -67,11 +66,11 @@ public final class TransferRouter extends XposedModule {
         BackendGuard.enter(backend);
         try {
             prefs = getRemotePreferences(Selection.PREFS);
-            install(Application.class.getDeclaredMethod("attach", Context.class), chain -> {
+            // The standalone bootstrap already owns attachment and supplies its actual context.
+            if (backend.equals("vector")) install(Application.class.getDeclaredMethod("attach", Context.class), chain -> {
                 context = (Context) chain.getArg(0);
                 Object result = chain.proceed();
-                if (attached != null) attached.accept(context);
-                else if (LPA.equals(name)) registerInventory();
+                if (LPA.equals(name)) registerInventory();
                 return result;
             });
             if (PHONE.equals(name)) {
