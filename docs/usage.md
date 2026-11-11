@@ -79,9 +79,12 @@ The ZIP’s narrower Java/ART process selection does not guarantee Play Integrit
 
 ## Private diagnostics
 
-Choose **5, 15, 30 or 60 minutes**, then wait for **Recording redacted events**.
+Choose **5, 15, 30 or 60 minutes**, then wait for the live status line to show
+**Recording redacted events**; **Starting reader** is not ready yet.
 Recording stops on request, at the duration or at **1 MiB**. It never resumes or
-uploads automatically. Closing the WebUI does not stop a timed recording.
+uploads automatically. Closing the WebUI does not stop a timed recording: the
+ZIP starts its worker through the ordinary root shell in a separate process
+session, independent of the Manager's app lifecycle.
 
 - **APK:** use Diagnostics and approve its root/notification requests. It works
   with the routing module disabled. Stop from the app or notification. Export

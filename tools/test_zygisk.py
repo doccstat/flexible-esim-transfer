@@ -53,6 +53,11 @@ class ZygiskTests(unittest.TestCase):
                 self.assertNotIn(forbidden, text)
         self.assertFalse((ROOT / 'zygisk/module/service.sh').exists())
 
+    def test_recording_uses_the_detached_worker(self):
+        source = (ROOT / 'zygisk/java/com/lixingchi/flexibleesimtransfer/ModuleControl.java').read_text()
+        self.assertIn('RecordingWorker.builder(seconds).start()', source)
+        self.assertNotIn('new ProcessBuilder("/system/bin/app_process"', source)
+
     def test_bootstrap_logs_follow_uid_specialization(self):
         source = (ROOT / 'zygisk/native/module.cpp').read_text()
         pre, post = source.split('void postAppSpecialize(', 1)

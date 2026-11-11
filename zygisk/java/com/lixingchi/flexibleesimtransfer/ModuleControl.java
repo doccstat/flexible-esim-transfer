@@ -93,10 +93,7 @@ public final class ModuleControl {
                 if (seconds != 300 && seconds != 900 && seconds != 1800 && seconds != 3600) throw new IllegalArgumentException();
                 if (recording() || Files.exists(REPORT)) throw new IllegalStateException();
                 Files.deleteIfExists(STOP); Files.deleteIfExists(ACTIVE); Files.deleteIfExists(STATE.resolve("record.result"));
-                new ProcessBuilder("/system/bin/app_process", "/system/bin", ModuleControl.class.getName(), "record", Integer.toString(seconds))
-                        .redirectInput(ProcessBuilder.Redirect.from(Paths.get("/dev/null").toFile()))
-                        .redirectOutput(ProcessBuilder.Redirect.to(Paths.get("/dev/null").toFile()))
-                        .redirectError(ProcessBuilder.Redirect.to(Paths.get("/dev/null").toFile())).start();
+                RecordingWorker.builder(seconds).start();
                 long deadline = SystemClock.elapsedRealtime() + 5000;
                 while (!Files.exists(ACTIVE) && SystemClock.elapsedRealtime() < deadline) Thread.sleep(50);
                 if (!Files.exists(ACTIVE)) { atomic(STOP, "stop"); throw new IllegalStateException(); }

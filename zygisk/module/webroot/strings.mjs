@@ -26,7 +26,6 @@ export const en = Object.freeze({
   unverified: 'Manual selection cannot be verified here. ', saved: 'Saved. Restart using your device’s supported procedure.',
   confirmOff: 'Forget this backend’s destination and disable session preservation? This does not undo a transfer or unload existing hooks. A supported restart is required.',
   offSaved: 'Routing off saved. Restart required.', invalidDuration: 'Choose a recording duration.',
-  started: 'Recording redacted events.', startPending: 'Recording starting; wait for reader readiness.',
   stopRequested: 'Stop requested.', confirmDelete: 'Permanently delete the private diagnostic report?',
   deleted: 'Report deleted.', filename: 'Filename in Downloads (used exactly as entered, including extension). Existing files will not be replaced.',
   exported: 'Exported to {path}.', unknownAction: 'Unknown action', requestLarge: 'Request too large',
