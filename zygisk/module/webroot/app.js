@@ -63,7 +63,7 @@ $('off').onclick = () => run(async () => {
 $('start').onclick = () => run(async () => {
   const seconds = Number($('duration').value);
   if (![300, 900, 1800, 3600].includes(seconds)) throw new Error(t('invalidDuration'));
-  const result = await call('start', { seconds }); await status(); message(t(result.readerReady ? 'started' : 'startPending'));
+  await call('start', { seconds }); message(''); await status();
 });
 $('stop').onclick = () => run(async () => { await call('stop'); message(t('stopRequested')); await status(); });
 $('review').onclick = () => run(async () => { $('report').textContent = (await call('review')).report; });

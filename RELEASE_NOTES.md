@@ -1,13 +1,14 @@
-# Flexible eSIM Transfer 0.5.4
+# Flexible eSIM Transfer 0.5.5
 
-Fix standalone application startup when another hook engine deoptimizes
-`Instrumentation.newApplication`. Bootstrap now hooks `Application.attach` once,
-passes the real context directly to the shared router, and starts Phone inventory
-only after native attachment succeeds. Application-construction callers are
-deoptimized to prevent inlining from bypassing attachment. Native exceptions
-remain unchanged. The companion-owned settings transport and fail-closed guards
-from 0.5.3 are retained. Settings, profiles, scopes and restart behavior are
-unchanged.
+Fix standalone recording being affected by KernelSU Manager backgrounding.
+Launch the recorder through the ordinary root shell, which leaves the Manager's
+app cgroup, then detach its process session and input/output streams. Explicit
+Stop, duration/size limits, private reports and refusal to overwrite an existing
+report are unchanged. Recording never starts or resumes automatically.
+
+The WebUI now uses its live recording status instead of retaining an outdated
+“Recording starting” notification. Routing, native card-session ownership,
+settings, profiles, scopes and restart behavior are unchanged.
 
 Two independent alternatives, included together in every release:
 
@@ -15,7 +16,7 @@ Two independent alternatives, included together in every release:
   settings, card picker and private diagnostic recorder.
 - **`FlexibleEsimTransfer-Zygisk.zip`** — standalone KernelSU WebUI and native
   Zygisk/LSPlant backend. No Flexible eSIM Transfer APK or Vector required.
-- Both use versionCode **12**, version **0.5.4**, and have individual SHA-256 files.
+- Both use versionCode **13**, version **0.5.5**, and have individual SHA-256 files.
 - Concise setup documentation and visible eSIM-loss warnings in both interfaces.
   Test a recoverable line first; recovery and use are your responsibility under
   the existing MIT warranty/liability terms.
@@ -36,8 +37,8 @@ active eUICC. The APK needs a libxposed API 101 framework. The ZIP needs KernelS
 Manager and a Zygisk API 5 provider. ZIP settings/diagnostics are root-only;
 uninstall retains them. Export/delete/forget are explicit choices.
 
-The startup correction has host/build checks; **device activation, inventory,
-carrier-transfer and integrity validation remain pending**. Play Integrity
+The recording correction has host/build checks; **device activation and
+background-recording validation remain pending**. Play Integrity
 interference remains unresolved; no DEVICE/STRONG result is promised. Native authorization, signed data, card errors
 and carrier eligibility are not bypassed. Activation requires the device’s
 supported restart procedure; preserve temporary root where applicable.
