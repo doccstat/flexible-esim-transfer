@@ -23,6 +23,9 @@ Download from [Releases](https://github.com/doccstat/flexible-esim-transfer/rele
 Every release includes both alternatives at the same version, with SHA-256 checksums.
 Neither requires the other.
 
+The Xposed APK (Vector/libxposed) can cause Play Integrity checks to fail.
+**The standalone Zygisk ZIP is recommended.**
+
 | Version | Requirements | Configuration |
 | --- | --- | --- |
 | **APK** | Root + Vector or another libxposed API 101 framework | Included app |
